@@ -1,0 +1,41 @@
+# Zig build artifacts
+.zig-cache/
+.zig-out/
+build/
+build-*/
+
+# Repository directory (where Git repositories will be stored)
+repositories/
+
+# Binary files
+*.exe
+*.out
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+.directory
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Project specific
+.env
+config.json
+*.log
