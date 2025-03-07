@@ -32,6 +32,7 @@ git-service/
 cd backend
 zig build
 zig build run
+# zig build && zig build run
 ```
 
 ### Frontend Setup
