@@ -45,6 +45,8 @@ npm run dev
 
 ## Development
 
+<img width="863" alt="Screenshot 2025-03-07 at 03 14 42" src="https://github.com/user-attachments/assets/6ec8e2a7-0aa7-4b1c-aec1-71148c60a33e" />
+
 - The backend server will be available at http://localhost:8080
 - The frontend development server will be available at http://localhost:5173
 
