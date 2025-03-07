@@ -44,8 +44,8 @@ npm run dev
 
 ## Development
 
-The backend server will be available at http://localhost:8080
-The frontend development server will be available at http://localhost:5173
+- The backend server will be available at http://localhost:8080
+- The frontend development server will be available at http://localhost:5173
 
 ## License
 
