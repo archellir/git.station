@@ -12,7 +12,7 @@ A high-performance, extremely lightweight Git service built with Zig and SvelteK
 ## Project Structure
 
 ```
-git-service/
+git.station/
 ├── backend/     # Zig backend
 ├── frontend/    # SvelteKit frontend
 └── scripts/     # Helper scripts
