@@ -1,0 +1,19 @@
+version: '3'
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./repositories:/app/repositories
+      - ./data:/app/data
+    environment:
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=your_secure_password
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:3000"
