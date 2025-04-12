@@ -1,71 +1,145 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Create the main module
-    const exe_mod = b.createModule(.{
+    // Main executable
+    const exe = b.addExecutable(.{
+        .name = "git-station",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    // Create the executable
-    const exe = b.addExecutable(.{
-        .name = "git.station",
-        .root_module = exe_mod,
-    });
-
-    // Link system libraries
-    exe.linkSystemLibrary("git2");
+    // Link libraries for the main application
     exe.linkSystemLibrary("sqlite3");
+    exe.linkSystemLibrary("git2");
     exe.linkLibC();
-
-    const include_paths = comptime [_][]const u8{
-        "/opt/homebrew/include", // Homebrew
-        "/usr/local/include", // Standard
-    };
-    const library_paths = comptime [_][]const u8{
-        "/opt/homebrew/lib", // Homebrew
-        "/usr/local/lib", // Standard
-    };
-
-    inline for (include_paths) |path| {
-        exe.addIncludePath(.{ .cwd_relative = path });
-    }
-    inline for (library_paths) |path| {
-        exe.addLibraryPath(.{ .cwd_relative = path });
-    }
 
     b.installArtifact(exe);
 
+    // Auth tests
+    const auth_tests = b.addTest(.{
+        .root_source_file = b.path("src/auth_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    auth_tests.linkLibC();
+
+    // Create a run step for the auth tests
+    const run_auth_tests = b.addRunArtifact(auth_tests);
+
+    const test_auth_step = b.step("test-auth", "Run the authentication tests");
+    test_auth_step.dependOn(&run_auth_tests.step);
+
+    // Add unit tests step with SQLite
+    const unit_tests = b.addTest(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Link SQLite for the tests
+    unit_tests.linkSystemLibrary("sqlite3");
+    unit_tests.linkLibC();
+
+    // Add specific test for database_test.zig
+    const db_tests = b.addTest(.{
+        .root_source_file = b.path("src/database_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Link SQLite for the database tests
+    db_tests.linkSystemLibrary("sqlite3");
+    db_tests.linkLibC();
+
+    // Add git tests with specific configurations
+    const git_tests = b.addTest(.{
+        .root_source_file = b.path("src/git_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Configure git tests with libgit2
+    git_tests.linkSystemLibrary("git2");
+
+    // Platform-specific configurations
+    if (builtin.os.tag == .macos) {
+        // macOS paths
+        git_tests.addIncludePath(b.path("/opt/homebrew/include")); // Apple Silicon paths
+        git_tests.addLibraryPath(b.path("/opt/homebrew/lib"));
+        git_tests.addIncludePath(b.path("/usr/local/include")); // Intel Mac paths
+        git_tests.addLibraryPath(b.path("/usr/local/lib"));
+    } else if (builtin.os.tag == .linux) {
+        // Linux paths (Debian/Ubuntu standard)
+        git_tests.addIncludePath(b.path("/usr/include"));
+        git_tests.addLibraryPath(b.path("/usr/lib/x86_64-linux-gnu"));
+    }
+
+    git_tests.linkLibC();
+
+    const run_unit_tests = b.addRunArtifact(unit_tests);
+    const run_db_tests = b.addRunArtifact(db_tests);
+    const run_git_tests = b.addRunArtifact(git_tests);
+
+    // This creates a "test" step that VS Code will use
+    const test_unit_step = b.step("test", "Run unit tests");
+    test_unit_step.dependOn(&run_unit_tests.step);
+    test_unit_step.dependOn(&run_db_tests.step);
+
+    // Add a separate step for git tests
+    const test_git_step = b.step("test-git", "Run git tests");
+    test_git_step.dependOn(&run_git_tests.step);
+
+    // Create a comprehensive test-all step
+    const test_all_step = b.step("test-all", "Run all tests (unit, db, auth, git)");
+    test_all_step.dependOn(&run_unit_tests.step);
+    test_all_step.dependOn(&run_db_tests.step);
+    test_all_step.dependOn(&run_auth_tests.step);
+    test_all_step.dependOn(&run_git_tests.step);
+
+    // Add platform-specific direct test commands
+    if (builtin.os.tag == .macos) {
+        // macOS direct command for Git tests
+        const direct_git_test_mac = b.addSystemCommand(&[_][]const u8{ "zig", "test", "src/git_test.zig", "-lc", "-lgit2", "-I/opt/homebrew/include", "-L/opt/homebrew/lib" });
+
+        const direct_git_test_mac_step = b.step("test-git-mac", "Run git tests directly with macOS paths");
+        direct_git_test_mac_step.dependOn(&direct_git_test_mac.step);
+    }
+
+    // Linux direct command for Git tests (for Docker)
+    const direct_git_test_linux = b.addSystemCommand(&[_][]const u8{ "zig", "test", "src/git_test.zig", "-lc", "-lgit2", "-I/usr/include", "-L/usr/lib/x86_64-linux-gnu" });
+
+    const direct_git_test_linux_step = b.step("test-git-linux", "Run git tests directly with Linux paths (for Docker)");
+    direct_git_test_linux_step.dependOn(&direct_git_test_linux.step);
+
+    // Direct command to run all tests on Linux/Docker
+    const direct_all_tests_linux = b.addSystemCommand(&[_][]const u8{ "sh", "-c", "zig test src/main.zig -lc -lsqlite3 && " ++
+        "zig test src/database_test.zig -lc -lsqlite3 && " ++
+        "zig test src/auth_test.zig -lc && " ++
+        "zig test src/git_test.zig -lc -lgit2 -I/usr/include -L/usr/lib/x86_64-linux-gnu" });
+
+    const direct_all_tests_linux_step = b.step("test-all-linux", "Run all tests directly with Linux paths (for Docker)");
+    direct_all_tests_linux_step.dependOn(&direct_all_tests_linux.step);
+
+    // Direct command to run all tests on macOS
+    const direct_all_tests_mac = b.addSystemCommand(&[_][]const u8{ "sh", "-c", "zig test src/main.zig -lc -lsqlite3 && " ++
+        "zig test src/database_test.zig -lc -lsqlite3 && " ++
+        "zig test src/auth_test.zig -lc && " ++
+        "zig test src/git_test.zig -lc -lgit2 -I/opt/homebrew/include -L/opt/homebrew/lib" });
+
+    const direct_all_tests_mac_step = b.step("test-all-mac", "Run all tests directly with macOS paths");
+    direct_all_tests_mac_step.dependOn(&direct_all_tests_mac.step);
+
+    // Run command for the main executable
     const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
 
-    const run_step = b.step("run", "Run the app");
+    const run_step = b.step("run", "Run the application");
     run_step.dependOn(&run_cmd.step);
-
-    // Create unit tests
-    const unit_tests = b.addTest(.{
-        .root_module = exe_mod,
-    });
-
-    unit_tests.linkSystemLibrary("git2");
-    unit_tests.linkSystemLibrary("sqlite3");
-    unit_tests.linkLibC();
-    inline for (include_paths) |path| {
-        unit_tests.addIncludePath(.{ .cwd_relative = path });
-    }
-    inline for (library_paths) |path| {
-        unit_tests.addLibraryPath(.{ .cwd_relative = path });
-    }
-
-    const run_unit_tests = b.addRunArtifact(unit_tests);
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_unit_tests.step);
 }
