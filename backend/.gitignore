@@ -5,6 +5,7 @@ zig-cache/
 zig-out/
 build/
 build-*/
+data/
 
 # Repository directory (where Git repositories will be stored)
 repositories/
