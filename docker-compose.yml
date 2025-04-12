@@ -16,12 +16,6 @@ services:
     ports:
       - "8080:8080"
 
-  frontend:
-    build: ./frontend
-    depends_on:
-      - backend
-    ports:
-      - "80:3000"
 
   # This is where the frontend would go
   # frontend:
