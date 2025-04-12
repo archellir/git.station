@@ -2,9 +2,9 @@ name: Run Tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, main ]
 
 jobs:
   test:
@@ -13,26 +13,35 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       
-    - name: Install Zig
+    - name: Set up Docker Compose
       run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Build and run tests in Docker
+      run: |
+        cd backend
+        chmod +x run-tests.sh
+        # Force Docker execution by not using the --local flag
+        ./run-tests.sh
+        
+    - name: Fallback to local tests if Docker fails
+      if: failure()
+      run: |
+        # Install Zig and dependencies if Docker execution fails
         ZIG_VERSION=0.14.0
         wget -c https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz
         tar -xf zig-linux-x86_64-${ZIG_VERSION}.tar.xz
         echo "$(pwd)/zig-linux-x86_64-${ZIG_VERSION}" >> $GITHUB_PATH
         
-    - name: Install dependencies
-      run: |
         sudo apt-get update
-        sudo apt-get install -y libgit2-dev libsqlite3-dev docker-compose
+        sudo apt-get install -y libgit2-dev libsqlite3-dev
         
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-      
-    - name: Build and run tests
-      run: |
         cd backend
-        chmod +x run-tests.sh
-        ./run-tests.sh
+        ./run-tests.sh --local
         
     - name: Report test results
       if: always()
