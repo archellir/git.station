@@ -35,7 +35,7 @@ if [ $# -gt 0 ]; then
             TEST_COMMAND="zig test src/auth_test.zig -lc"
             ;;
         --unit)
-            TEST_COMMAND="zig test src/main.zig -lc -lsqlite3"
+            TEST_COMMAND="zig test src/main_test.zig -lc -lsqlite3 -lgit2 && zig test src/database_test.zig -lc -lsqlite3 && zig test src/auth_test.zig -lc && zig test src/git_test.zig -lc -lgit2 -I/opt/homebrew/include -L/opt/homebrew/lib"
             ;;
         --local)
             RUN_LOCALLY=true
@@ -85,14 +85,14 @@ if [ "$RUN_LOCALLY" = true ]; then
     if [[ "$(uname)" == "Darwin" ]]; then
         # macOS
         if [[ "$TEST_COMMAND" == "test-all" ]]; then
-            TEST_COMMAND="zig test src/main.zig -lc -lsqlite3 && zig test src/database_test.zig -lc -lsqlite3 && zig test src/auth_test.zig -lc && zig test src/git_test.zig -lc -lgit2 -I/opt/homebrew/include -L/opt/homebrew/lib"
+            TEST_COMMAND="zig test src/main_test.zig -lc -lsqlite3 -lgit2 && zig test src/database_test.zig -lc -lsqlite3 && zig test src/auth_test.zig -lc && zig test src/git_test.zig -lc -lgit2 -I/opt/homebrew/include -L/opt/homebrew/lib"
         elif [[ "$TEST_COMMAND" == "test-git" ]]; then
             TEST_COMMAND="zig test src/git_test.zig -lc -lgit2 -I/opt/homebrew/include -L/opt/homebrew/lib"
         fi
     else
         # Linux
         if [[ "$TEST_COMMAND" == "test-all" ]]; then
-            TEST_COMMAND="zig test src/main.zig -lc -lsqlite3 && zig test src/database_test.zig -lc -lsqlite3 && zig test src/auth_test.zig -lc && zig test src/git_test.zig -lc -lgit2 -I/usr/include -L/usr/lib/x86_64-linux-gnu"
+            TEST_COMMAND="zig test src/main_test.zig -lc -lsqlite3 -lgit2 && zig test src/database_test.zig -lc -lsqlite3 && zig test src/auth_test.zig -lc && zig test src/git_test.zig -lc -lgit2 -I/usr/include -L/usr/lib/x86_64-linux-gnu"
         elif [[ "$TEST_COMMAND" == "test-git" ]]; then
             TEST_COMMAND="zig test src/git_test.zig -lc -lgit2 -I/usr/include -L/usr/lib/x86_64-linux-gnu"
         fi
