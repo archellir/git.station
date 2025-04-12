@@ -66,19 +66,7 @@ pub fn build(b: *std.Build) void {
     // Configure git tests with libgit2
     git_tests.linkSystemLibrary("git2");
 
-    // Platform-specific configurations
-    if (builtin.os.tag == .macos) {
-        // macOS paths
-        git_tests.addIncludePath(b.path("/opt/homebrew/include")); // Apple Silicon paths
-        git_tests.addLibraryPath(b.path("/opt/homebrew/lib"));
-        git_tests.addIncludePath(b.path("/usr/local/include")); // Intel Mac paths
-        git_tests.addLibraryPath(b.path("/usr/local/lib"));
-    } else if (builtin.os.tag == .linux) {
-        // Linux paths (Debian/Ubuntu standard)
-        git_tests.addIncludePath(b.path("/usr/include"));
-        git_tests.addLibraryPath(b.path("/usr/lib/x86_64-linux-gnu"));
-    }
-
+    // Instead of using the build system for these paths, we'll rely on the direct test commands below
     git_tests.linkLibC();
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
@@ -100,6 +88,26 @@ pub fn build(b: *std.Build) void {
     test_all_step.dependOn(&run_db_tests.step);
     test_all_step.dependOn(&run_auth_tests.step);
     test_all_step.dependOn(&run_git_tests.step);
+
+    // Add specific test for main_test.zig
+    const main_tests = b.addTest(.{
+        .root_source_file = b.path("src/main_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Link libraries for the main tests
+    main_tests.linkSystemLibrary("sqlite3");
+    main_tests.linkSystemLibrary("git2");
+    main_tests.linkLibC();
+
+    const run_main_tests = b.addRunArtifact(main_tests);
+
+    const test_main_step = b.step("test-main", "Run the main.zig tests");
+    test_main_step.dependOn(&run_main_tests.step);
+
+    // Also add main tests to test-all step
+    test_all_step.dependOn(&run_main_tests.step);
 
     // Add platform-specific direct test commands
     if (builtin.os.tag == .macos) {
@@ -133,6 +141,12 @@ pub fn build(b: *std.Build) void {
 
     const direct_all_tests_mac_step = b.step("test-all-mac", "Run all tests directly with macOS paths");
     direct_all_tests_mac_step.dependOn(&direct_all_tests_mac.step);
+
+    // Direct command to run main tests on macOS
+    const direct_main_test_mac = b.addSystemCommand(&[_][]const u8{ "zig", "test", "src/main_test.zig", "-lc", "-lsqlite3", "-lgit2", "-I/opt/homebrew/include", "-L/opt/homebrew/lib" });
+
+    const direct_main_test_mac_step = b.step("test-main-mac", "Run main tests directly with macOS paths");
+    direct_main_test_mac_step.dependOn(&direct_main_test_mac.step);
 
     // Run command for the main executable
     const run_cmd = b.addRunArtifact(exe);
