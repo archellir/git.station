@@ -17,3 +17,12 @@ services:
       - backend
     ports:
       - "80:3000"
+
+  # This is where the frontend would go
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "80:3000"
+  #   depends_on:
+  #     - git-service
+  #   restart: unless-stopped
