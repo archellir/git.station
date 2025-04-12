@@ -59,7 +59,7 @@ if ! command -v docker-compose &> /dev/null && [ "$RUN_LOCALLY" = false ]; then
 fi
 
 # Check if Dockerfile and docker-compose.yml exist
-if [ ! -f "backend/Dockerfile" ] || [ ! -f "docker-compose.yml" ] && [ "$RUN_LOCALLY" = false ]; then
+if [ ! -f "Dockerfile" -a ! -f "backend/Dockerfile" ] || [ ! -f "docker-compose.yml" -a ! -f "../docker-compose.yml" ] && [ "$RUN_LOCALLY" = false ]; then
     echo "Warning: Dockerfile or docker-compose.yml not found, falling back to local execution."
     RUN_LOCALLY=true
 fi

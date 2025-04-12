@@ -4,12 +4,15 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        - TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
+    platform: ${TARGETPLATFORM:-linux/amd64}
     volumes:
       - ./repositories:/app/repositories
       - ./data:/app/data
     environment:
       - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=your_secure_password
+      - ADMIN_PASSWORD=secure_password
     ports:
       - "8080:8080"
 
