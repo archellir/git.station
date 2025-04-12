@@ -22,7 +22,7 @@ git.station/
 
 ### Prerequisites
 
-- [Zig](https://ziglang.org/) (0.11.0 or later)
+- [Zig](https://ziglang.org/) (0.14.0 or later)
 - [Node.js](https://nodejs.org/) (18 or later)
 - [libgit2](https://libgit2.org/) development libraries
 - [SQLite3](https://www.sqlite.org/) development libraries
