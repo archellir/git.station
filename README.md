@@ -84,6 +84,22 @@ Run database tests locally:
 sh run-tests.sh --db --local
 ```
 
+### Continuous Integration
+
+Tests are automatically run on every push to the `master` branch and on all pull requests through GitHub Actions. The workflow:
+
+1. Builds the Docker container for testing
+2. Runs the complete test suite
+3. Reports the results directly in the GitHub interface
+
+You can view test results in the "Actions" tab of the repository.
+
+To run the same CI tests locally before pushing:
+```bash
+cd backend
+./run-tests.sh
+```
+
 ### Testing Environment Requirements
 
 #### Local Testing
@@ -108,6 +124,17 @@ For Docker-based testing, you need:
 - docker-compose
 
 The Docker setup handles all dependencies automatically.
+
+### Test Architecture
+
+The test suite is organized into several modules:
+
+- **Unit Tests**: Basic functionality tests for individual components
+- **Git Tests**: Tests for repository creation, cloning, and management
+- **Database Tests**: Tests for data persistence and retrieval
+- **Authentication Tests**: Tests for user authentication and authorization
+
+Each test module can be run independently or as part of the complete test suite.
 
 ## Development
 
