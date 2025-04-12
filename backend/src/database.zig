@@ -3,6 +3,10 @@ const c = @cImport({
     @cInclude("sqlite3.h");
 });
 
+// In SQLite, SQLITE_TRANSIENT is defined as a special constant (-1)
+// We're using a null function pointer instead, which works the same
+const SQLITE_TRANSIENT: c.sqlite3_destructor_type = null;
+
 pub const DatabaseError = error{
     OpenFailed,
     InitFailed,
@@ -86,7 +90,7 @@ pub fn deinit() void {
     }
 }
 
-fn execSQL(sql: [*:0]const u8) c_int {
+pub fn execSQL(sql: [*:0]const u8) c_int {
     var errmsg: [*c]u8 = null;
     const result = c.sqlite3_exec(db, sql, null, null, &errmsg);
     if (errmsg != null) {
@@ -113,9 +117,10 @@ pub fn createIssue(repo_name: []const u8, title: []const u8, body: []const u8, a
     }
     defer _ = c.sqlite3_finalize(stmt);
 
-    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, c.SQLITE_TRANSIENT);
-    _ = c.sqlite3_bind_text(stmt, 2, c_title, -1, c.SQLITE_TRANSIENT);
-    _ = c.sqlite3_bind_text(stmt, 3, c_body, -1, c.SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, SQLITE_TRANSIENT);
+    const title_len2: c_int = @intCast(c_title.len);
+    _ = c.sqlite3_bind_text(stmt, 2, c_title, title_len2, SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 3, c_body, -1, SQLITE_TRANSIENT);
     _ = c.sqlite3_bind_int64(stmt, 4, timestamp);
     _ = c.sqlite3_bind_int64(stmt, 5, timestamp);
 
@@ -123,7 +128,8 @@ pub fn createIssue(repo_name: []const u8, title: []const u8, body: []const u8, a
         return DatabaseError.QueryFailed;
     }
 
-    return @as(usize, c.sqlite3_last_insert_rowid(db));
+    const last_id = c.sqlite3_last_insert_rowid(db);
+    return @intCast(last_id);
 }
 
 pub fn getIssue(id: usize, allocator: std.mem.Allocator) !Issue {
@@ -134,13 +140,15 @@ pub fn getIssue(id: usize, allocator: std.mem.Allocator) !Issue {
     }
     defer _ = c.sqlite3_finalize(stmt);
 
-    _ = c.sqlite3_bind_int64(stmt, 1, @as(i64, id));
+    const id_i64: i64 = @intCast(id);
+    _ = c.sqlite3_bind_int64(stmt, 1, id_i64);
 
     if (c.sqlite3_step(stmt) != c.SQLITE_ROW) {
         return DatabaseError.DataError;
     }
 
-    const issue_id = @as(usize, c.sqlite3_column_int64(stmt, 0));
+    const issue_id_i64 = c.sqlite3_column_int64(stmt, 0);
+    const issue_id: usize = @intCast(issue_id_i64);
     const repo_name = c.sqlite3_column_text(stmt, 1);
     const title = c.sqlite3_column_text(stmt, 2);
     const body = c.sqlite3_column_text(stmt, 3);
@@ -176,10 +184,11 @@ pub fn listIssues(repo_name: []const u8, allocator: std.mem.Allocator) ![]Issue 
 
     const c_repo_name = try allocator.dupeZ(u8, repo_name);
     defer allocator.free(c_repo_name);
-    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, c.SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, SQLITE_TRANSIENT);
 
     while (c.sqlite3_step(stmt) == c.SQLITE_ROW) {
-        const issue_id = @as(usize, c.sqlite3_column_int64(stmt, 0));
+        const issue_id_i64 = c.sqlite3_column_int64(stmt, 0);
+        const issue_id: usize = @intCast(issue_id_i64);
         const repo = c.sqlite3_column_text(stmt, 1);
         const title = c.sqlite3_column_text(stmt, 2);
         const body = c.sqlite3_column_text(stmt, 3);
@@ -252,21 +261,25 @@ pub fn updateIssue(id: usize, title: ?[]const u8, body: ?[]const u8, state: ?[]c
     try sql_buf.writer().print(" WHERE id = ?", .{});
 
     var stmt: ?*c.sqlite3_stmt = null;
-    if (c.sqlite3_prepare_v2(db, sql_buf.items.ptr, @as(c_int, sql_buf.items.len), &stmt, null) != c.SQLITE_OK) {
+    if (c.sqlite3_prepare_v2(db, sql_buf.items.ptr, @intCast(sql_buf.items.len), &stmt, null) != c.SQLITE_OK) {
         return DatabaseError.QueryFailed;
     }
     defer _ = c.sqlite3_finalize(stmt);
 
     var param_idx: usize = 1;
     for (params.items) |param| {
-        _ = c.sqlite3_bind_text(stmt, @as(c_int, param_idx), param, -1, c.SQLITE_TRANSIENT);
+        const idx: c_int = @intCast(param_idx);
+        _ = c.sqlite3_bind_text(stmt, idx, param.ptr, -1, SQLITE_TRANSIENT);
         param_idx += 1;
     }
 
-    _ = c.sqlite3_bind_int64(stmt, @as(c_int, param_idx), timestamp);
+    const timestamp_idx: c_int = @intCast(param_idx);
+    _ = c.sqlite3_bind_int64(stmt, timestamp_idx, timestamp);
     param_idx += 1;
 
-    _ = c.sqlite3_bind_int64(stmt, @as(c_int, param_idx), @as(i64, id));
+    const id_idx: c_int = @intCast(param_idx);
+    const id_i64: i64 = @intCast(id);
+    _ = c.sqlite3_bind_int64(stmt, id_idx, id_i64);
 
     if (c.sqlite3_step(stmt) != c.SQLITE_DONE) {
         return DatabaseError.QueryFailed;
@@ -295,11 +308,12 @@ pub fn createPullRequest(repo_name: []const u8, title: []const u8, body: []const
     }
     defer _ = c.sqlite3_finalize(stmt);
 
-    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, c.SQLITE_TRANSIENT);
-    _ = c.sqlite3_bind_text(stmt, 2, c_title, -1, c.SQLITE_TRANSIENT);
-    _ = c.sqlite3_bind_text(stmt, 3, c_body, -1, c.SQLITE_TRANSIENT);
-    _ = c.sqlite3_bind_text(stmt, 4, c_source_branch, -1, c.SQLITE_TRANSIENT);
-    _ = c.sqlite3_bind_text(stmt, 5, c_target_branch, -1, c.SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, SQLITE_TRANSIENT);
+    const title_len2: c_int = @intCast(c_title.len);
+    _ = c.sqlite3_bind_text(stmt, 2, c_title, title_len2, SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 3, c_body, -1, SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 4, c_source_branch, -1, SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 5, c_target_branch, -1, SQLITE_TRANSIENT);
     _ = c.sqlite3_bind_int64(stmt, 6, timestamp);
     _ = c.sqlite3_bind_int64(stmt, 7, timestamp);
 
@@ -307,7 +321,8 @@ pub fn createPullRequest(repo_name: []const u8, title: []const u8, body: []const
         return DatabaseError.QueryFailed;
     }
 
-    return @as(usize, c.sqlite3_last_insert_rowid(db));
+    const last_id = c.sqlite3_last_insert_rowid(db);
+    return @intCast(last_id);
 }
 
 pub fn getPullRequest(id: usize, allocator: std.mem.Allocator) !PullRequest {
@@ -318,13 +333,15 @@ pub fn getPullRequest(id: usize, allocator: std.mem.Allocator) !PullRequest {
     }
     defer _ = c.sqlite3_finalize(stmt);
 
-    _ = c.sqlite3_bind_int64(stmt, 1, @as(i64, id));
+    const id_i64: i64 = @intCast(id);
+    _ = c.sqlite3_bind_int64(stmt, 1, id_i64);
 
     if (c.sqlite3_step(stmt) != c.SQLITE_ROW) {
         return DatabaseError.DataError;
     }
 
-    const pr_id = @as(usize, c.sqlite3_column_int64(stmt, 0));
+    const pr_id_i64 = c.sqlite3_column_int64(stmt, 0);
+    const pr_id: usize = @intCast(pr_id_i64);
     const repo_name = c.sqlite3_column_text(stmt, 1);
     const title = c.sqlite3_column_text(stmt, 2);
     const body = c.sqlite3_column_text(stmt, 3);
@@ -363,10 +380,11 @@ pub fn listPullRequests(repo_name: []const u8, allocator: std.mem.Allocator) ![]
 
     const c_repo_name = try allocator.dupeZ(u8, repo_name);
     defer allocator.free(c_repo_name);
-    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, c.SQLITE_TRANSIENT);
+    _ = c.sqlite3_bind_text(stmt, 1, c_repo_name, -1, SQLITE_TRANSIENT);
 
     while (c.sqlite3_step(stmt) == c.SQLITE_ROW) {
-        const pr_id = @as(usize, c.sqlite3_column_int64(stmt, 0));
+        const pr_id_i64 = c.sqlite3_column_int64(stmt, 0);
+        const pr_id: usize = @intCast(pr_id_i64);
         const repo = c.sqlite3_column_text(stmt, 1);
         const title = c.sqlite3_column_text(stmt, 2);
         const body = c.sqlite3_column_text(stmt, 3);
@@ -443,21 +461,25 @@ pub fn updatePullRequest(id: usize, title: ?[]const u8, body: ?[]const u8, state
     try sql_buf.writer().print(" WHERE id = ?", .{});
 
     var stmt: ?*c.sqlite3_stmt = null;
-    if (c.sqlite3_prepare_v2(db, sql_buf.items.ptr, @as(c_int, sql_buf.items.len), &stmt, null) != c.SQLITE_OK) {
+    if (c.sqlite3_prepare_v2(db, sql_buf.items.ptr, @intCast(sql_buf.items.len), &stmt, null) != c.SQLITE_OK) {
         return DatabaseError.QueryFailed;
     }
     defer _ = c.sqlite3_finalize(stmt);
 
     var param_idx: usize = 1;
     for (params.items) |param| {
-        _ = c.sqlite3_bind_text(stmt, @as(c_int, param_idx), param, -1, c.SQLITE_TRANSIENT);
+        const idx: c_int = @intCast(param_idx);
+        _ = c.sqlite3_bind_text(stmt, idx, param.ptr, -1, SQLITE_TRANSIENT);
         param_idx += 1;
     }
 
-    _ = c.sqlite3_bind_int64(stmt, @as(c_int, param_idx), timestamp);
+    const timestamp_idx: c_int = @intCast(param_idx);
+    _ = c.sqlite3_bind_int64(stmt, timestamp_idx, timestamp);
     param_idx += 1;
 
-    _ = c.sqlite3_bind_int64(stmt, @as(c_int, param_idx), @as(i64, id));
+    const id_idx: c_int = @intCast(param_idx);
+    const id_i64: i64 = @intCast(id);
+    _ = c.sqlite3_bind_int64(stmt, id_idx, id_i64);
 
     if (c.sqlite3_step(stmt) != c.SQLITE_DONE) {
         return DatabaseError.QueryFailed;
