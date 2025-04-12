@@ -19,6 +19,7 @@ pub fn build(b: *std.Build) void {
 
     // Link system libraries
     exe.linkSystemLibrary("git2");
+    exe.linkSystemLibrary("sqlite3");
     exe.linkLibC();
 
     const include_paths = comptime [_][]const u8{
@@ -54,6 +55,7 @@ pub fn build(b: *std.Build) void {
     });
 
     unit_tests.linkSystemLibrary("git2");
+    unit_tests.linkSystemLibrary("sqlite3");
     unit_tests.linkLibC();
     inline for (include_paths) |path| {
         unit_tests.addIncludePath(.{ .cwd_relative = path });
