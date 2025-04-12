@@ -1,7 +1,9 @@
 version: '3'
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     volumes:
       - ./repositories:/app/repositories
       - ./data:/app/data

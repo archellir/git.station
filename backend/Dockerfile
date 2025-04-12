@@ -1,31 +1,29 @@
 FROM debian:bookworm-slim
 
-# Install dependencies
+# Install required packages
 RUN apt-get update && apt-get install -y \
     curl \
-    build-essential \
+    gcc \
+    git \
     libgit2-dev \
     libsqlite3-dev \
-    ca-certificates \
+    pkg-config \
+    unzip \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Zig
-RUN curl -sSL https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz | tar -xJ --strip-components=1 -C /usr/local/
+ARG ZIG_VERSION=0.14.0
+RUN curl -sSL https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz | \
+    tar -xJ -C /usr/local && \
+    mv /usr/local/zig-linux-x86_64-${ZIG_VERSION} /usr/local/zig && \
+    ln -s /usr/local/zig/zig /usr/local/bin/zig
 
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Copy source files
+# Copy source code
 COPY . .
 
-# Build the application
-RUN zig build
-
-# Create directories
-RUN mkdir -p /app/repositories /app/data
-
-# Expose port
-EXPOSE 8080
-
-# Run the server
-CMD ["./zig-out/bin/git.station"] 
+# Run tests by default
+CMD ["zig", "build", "test"]
