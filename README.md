@@ -6,6 +6,8 @@ A high-performance, extremely lightweight Git service built with Zig and SvelteK
 
 - Create and manage Git repositories
 - Web-based repository browsing
+- Branch management (create, delete)
+- Pull request workflow (create, update, close, merge, delete source branch)
 - CI/CD pipeline integration
 - Optimized for performance and minimal resource usage
 
@@ -43,6 +45,46 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## API Reference
+
+### Repository Management
+
+- `GET /api/repo/{repo_name}` - Get repository details
+- `GET /api/repo/{repo_name}/branches` - List branches in repository
+
+### Branch Management
+
+- `POST /api/repo/{repo_name}/branches` - Create a new branch
+- `DELETE /api/repo/{repo_name}/branch` - Delete a branch
+  ```json
+  { "branch": "branch-name-to-delete" }
+  ```
+
+### Pull Request Workflow
+
+- `GET /api/repo/{repo_name}/pulls` - List pull requests for a repository
+- `GET /api/repo/{repo_name}/pulls/{id}` - Get a specific pull request
+- `POST /api/repo/{repo_name}/pulls` - Create a new pull request
+  ```json
+  {
+    "title": "Pull request title",
+    "body": "Description of changes",
+    "source_branch": "feature-branch",
+    "target_branch": "main"
+  }
+  ```
+- `PATCH /api/repo/{repo_name}/pulls/{id}` - Update a pull request
+  ```json
+  {
+    "title": "Updated title",
+    "body": "Updated description",
+    "state": "open"
+  }
+  ```
+- `PUT /api/repo/{repo_name}/pulls/{id}/merge` - Merge a pull request
+- `PUT /api/repo/{repo_name}/pulls/{id}/close` - Close a pull request
+- `PUT /api/repo/{repo_name}/pulls/{id}/delete-branch` - Delete the source branch of a pull request
 
 ## Testing
 

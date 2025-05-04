@@ -178,6 +178,9 @@ fn handleConnection(conn: Connection, allocator: std.mem.Allocator) void {
         } else if (std.mem.startsWith(u8, path, "/api/repo/") and std.mem.endsWith(u8, path, "/pulls")) {
             const repo_name = path["/api/repo/".len .. path.len - "/pulls".len];
             handleCreatePullRequest(conn, request, allocator, repo_name) catch return sendError(conn, 500, "Failed to create pull request");
+        } else if (std.mem.endsWith(u8, path, "/branch/delete")) {
+            const repo_name = path["/api/repo/".len .. path.len - "/branch/delete".len];
+            handleDeleteBranch(conn, request, allocator, repo_name, null) catch return sendError(conn, 500, "Failed to delete branch");
         } else {
             sendError(conn, 404, "Not found");
         }
@@ -195,6 +198,10 @@ fn handleConnection(conn: Connection, allocator: std.mem.Allocator) void {
 
             if (std.mem.endsWith(u8, path, "/merge")) {
                 handleMergePullRequest(conn, allocator, pr_id) catch return sendError(conn, 500, "Failed to merge pull request");
+            } else if (std.mem.endsWith(u8, path, "/close")) {
+                handleClosePullRequest(conn, allocator, pr_id) catch return sendError(conn, 500, "Failed to close pull request");
+            } else if (std.mem.endsWith(u8, path, "/delete-branch")) {
+                handleDeleteBranch(conn, request, allocator, path["/api/repo/".len..], pr_id) catch return sendError(conn, 500, "Failed to delete branch");
             } else {
                 handleUpdatePullRequest(conn, request, allocator, pr_id) catch return sendError(conn, 500, "Failed to update pull request");
             }
@@ -802,6 +809,53 @@ pub fn handleMergePullRequest(conn: Connection, allocator: std.mem.Allocator, pr
     try db.mergePullRequest(pr_id, allocator);
 
     const json = try std.fmt.allocPrint(allocator, "{{\"id\":{d},\"status\":\"merged\"}}", .{pr_id});
+    defer allocator.free(json);
+    try sendJsonResponse(conn, 200, json);
+}
+
+pub fn handleClosePullRequest(conn: Connection, allocator: std.mem.Allocator, pr_id: usize) !void {
+    try db.closePullRequest(pr_id, allocator);
+
+    const json = try std.fmt.allocPrint(allocator, "{{\"id\":{d},\"status\":\"closed\"}}", .{pr_id});
+    defer allocator.free(json);
+    try sendJsonResponse(conn, 200, json);
+}
+
+pub fn handleDeleteBranch(conn: Connection, request: []const u8, allocator: std.mem.Allocator, repo_name: []const u8, pr_id: ?usize) !void {
+    var branch_name_to_free: ?[]const u8 = null;
+    defer if (branch_name_to_free != null) allocator.free(branch_name_to_free.?);
+
+    var branch_name: ?[]const u8 = null;
+
+    // If we have a PR ID, get the branch from the PR
+    if (pr_id != null) {
+        // Get the branch name from the PR
+        branch_name_to_free = try db.deleteBranchFromPullRequest(pr_id.?, allocator);
+        branch_name = branch_name_to_free;
+    } else {
+        // Get branch name from request body
+        const body_start = std.mem.indexOf(u8, request, "\r\n\r\n") orelse return error.NoBody;
+        const body = request[body_start + 4 ..];
+
+        branch_name = parseJsonString(body, "branch", allocator) catch return error.InvalidJson;
+        branch_name_to_free = branch_name;
+
+        if (branch_name == null) {
+            return error.InvalidBranchData;
+        }
+    }
+
+    // Open the repo
+    var repo_path_buf: [std.fs.max_path_bytes]u8 = undefined;
+    const repo_path = try std.fmt.bufPrint(&repo_path_buf, "repositories/{s}", .{repo_name});
+
+    const repo = try git.openRepository(repo_path, allocator);
+    defer git.freeRepository(repo);
+
+    // Delete the branch
+    try git.deleteBranch(repo, branch_name.?, allocator);
+
+    const json = try std.fmt.allocPrint(allocator, "{{\"branch\":\"{s}\",\"status\":\"deleted\"}}", .{branch_name.?});
     defer allocator.free(json);
     try sendJsonResponse(conn, 200, json);
 }

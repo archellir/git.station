@@ -160,6 +160,38 @@ pub fn createBranch(repo: *c.git_repository, name: []const u8, allocator: std.me
     c.git_reference_free(branch_ref);
 }
 
+pub fn deleteBranch(repo: *c.git_repository, name: []const u8, allocator: std.mem.Allocator) !void {
+    // Get reference to the branch
+    var branch_ref: ?*c.git_reference = null;
+    const c_name = try allocator.dupeZ(u8, name);
+    defer allocator.free(c_name);
+
+    // Try looking up the branch
+    if (c.git_branch_lookup(&branch_ref, repo, c_name, c.GIT_BRANCH_LOCAL) < 0) {
+        // If not found by simple name, try with full reference path
+        const ref_name = try std.fmt.allocPrint(allocator, "refs/heads/{s}", .{name});
+        defer allocator.free(ref_name);
+        const c_ref_name = try allocator.dupeZ(u8, ref_name);
+        defer allocator.free(c_ref_name);
+
+        if (c.git_reference_lookup(&branch_ref, repo, c_ref_name) < 0) {
+            return GitError.BranchListFailed;
+        }
+    }
+    defer c.git_reference_free(branch_ref);
+
+    // Check if branch is checked out (can't delete the current branch)
+    var is_head: c_int = 0;
+    if (c.git_branch_is_head(branch_ref, &is_head) == 0 and is_head == 1) {
+        return GitError.BranchCreateFailed; // Can't delete the current branch
+    }
+
+    // Delete the branch
+    if (c.git_branch_delete(branch_ref) < 0) {
+        return GitError.BranchCreateFailed; // Reusing error code for simplicity
+    }
+}
+
 // Commit operations
 pub const Commit = struct {
     id: [40]u8,

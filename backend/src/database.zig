@@ -501,3 +501,24 @@ pub fn mergePullRequest(id: usize, allocator: std.mem.Allocator) !void {
     // Update PR status to merged
     try updatePullRequest(id, null, null, "merged", allocator);
 }
+
+pub fn deleteBranchFromPullRequest(pr_id: usize, allocator: std.mem.Allocator) ![]const u8 {
+    // First get the PR details to get repo and source branch
+    const pull_request = try getPullRequest(pr_id, allocator);
+    defer {
+        allocator.free(pull_request.repo_name);
+        allocator.free(pull_request.title);
+        allocator.free(pull_request.body);
+        allocator.free(pull_request.source_branch);
+        allocator.free(pull_request.target_branch);
+        allocator.free(pull_request.state);
+    }
+
+    // Return the source branch name (the branch to delete)
+    return try allocator.dupe(u8, pull_request.source_branch);
+}
+
+pub fn closePullRequest(id: usize, allocator: std.mem.Allocator) !void {
+    // Simply update the PR status to closed
+    try updatePullRequest(id, null, null, "closed", allocator);
+}
