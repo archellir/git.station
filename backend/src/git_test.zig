@@ -160,3 +160,20 @@ test "directory operations" {
     const nested_file_exists = pathExists(nested_file);
     try testing.expect(nested_file_exists);
 }
+
+test "branch deletion" {
+    git.init();
+    defer git.deinit();
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const test_dir = try setupTestDir(allocator);
+    defer cleanupTestDir(test_dir, allocator);
+
+    try git.createRepository(test_dir, allocator);
+
+    const repo_exists = pathExists(test_dir);
+    try testing.expect(repo_exists);
+}

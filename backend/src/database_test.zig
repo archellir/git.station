@@ -345,3 +345,64 @@ test "partial updates" {
     try testing.expectEqualStrings("PR Body", pr.body);
     try testing.expectEqualStrings("open", pr.state);
 }
+
+test "pull request closing" {
+    try setupTest();
+    defer cleanupTest();
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // Create a test PR
+    const repo_name = "test-repo";
+    const pr_id = try db.createPullRequest(repo_name, "Test PR", "Test body", "feature-branch", "main", allocator);
+
+    // Verify PR is open
+    var pr = try db.getPullRequest(pr_id, allocator);
+    try testing.expectEqualStrings("open", pr.state);
+
+    // Free memory before reusing the variables
+    allocator.free(pr.repo_name);
+    allocator.free(pr.title);
+    allocator.free(pr.body);
+    allocator.free(pr.source_branch);
+    allocator.free(pr.target_branch);
+    allocator.free(pr.state);
+
+    // Close the PR
+    try db.closePullRequest(pr_id, allocator);
+
+    // Verify PR is closed
+    pr = try db.getPullRequest(pr_id, allocator);
+    try testing.expectEqualStrings("closed", pr.state);
+
+    // Free memory
+    allocator.free(pr.repo_name);
+    allocator.free(pr.title);
+    allocator.free(pr.body);
+    allocator.free(pr.source_branch);
+    allocator.free(pr.target_branch);
+    allocator.free(pr.state);
+}
+
+test "get branch from pull request" {
+    try setupTest();
+    defer cleanupTest();
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // Create a test PR with specific source branch
+    const repo_name = "test-repo";
+    const source_branch = "feature-branch-to-delete";
+    const pr_id = try db.createPullRequest(repo_name, "Test PR", "Test body", source_branch, "main", allocator);
+
+    // Get branch from PR
+    const branch = try db.deleteBranchFromPullRequest(pr_id, allocator);
+    defer allocator.free(branch);
+
+    // Verify correct branch name is returned
+    try testing.expectEqualStrings(source_branch, branch);
+}

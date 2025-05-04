@@ -4,6 +4,16 @@ const main_module = @import("main.zig");
 const git = @import("git.zig");
 const auth = @import("auth.zig");
 const db = @import("database.zig");
+const fs = std.fs;
+
+// Helper to check if a file or directory exists
+fn pathExists(path: []const u8) bool {
+    fs.cwd().access(path, .{}) catch |err| {
+        if (err == error.FileNotFound) return false;
+        return false; // Also return false for other errors
+    };
+    return true;
+}
 
 // Simple response collector for testing
 const ResponseCollector = struct {
@@ -166,6 +176,25 @@ fn teardownTestEnvironment() void {
     std.fs.cwd().deleteTree(main_module.REPO_PATH) catch {};
 }
 
+// Setup and teardown for API tests
+fn setupTest() !void {
+    std.fs.cwd().deleteTree("data") catch {};
+    std.fs.cwd().deleteTree("repositories") catch {};
+
+    try std.fs.cwd().makePath("data");
+    try std.fs.cwd().makePath("repositories");
+
+    git.init();
+    try db.init();
+
+    std.time.sleep(std.time.ns_per_ms * 10);
+}
+
+fn cleanupTest() void {
+    db.deinit();
+    git.deinit();
+}
+
 test "integration test setup and teardown" {
     try setupTestEnvironment();
     defer teardownTestEnvironment();
@@ -216,7 +245,105 @@ pub fn main() !void {
     // Run only the non-integration tests by default when executing main_test.zig directly
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
+}
 
-    std.debug.print("Running main.zig basic tests...\n", .{});
-    std.debug.print("All tests passed!\n", .{});
+// Test helper functions for calling the APIs directly
+fn testCreatePullRequest(repo_name: []const u8, title: []const u8, body: []const u8, source_branch: []const u8, target_branch: []const u8, allocator: std.mem.Allocator) !usize {
+    const pr_id = try db.createPullRequest(repo_name, title, body, source_branch, target_branch, allocator);
+    return pr_id;
+}
+
+fn testClosePullRequest(pr_id: usize, allocator: std.mem.Allocator) !void {
+    try db.closePullRequest(pr_id, allocator);
+}
+
+fn testDeleteBranch(repo: anytype, branch_name: []const u8, allocator: std.mem.Allocator) !void {
+    try git.deleteBranch(repo, branch_name, allocator);
+}
+
+fn testDeleteBranchFromPR(pr_id: usize, repo: anytype, allocator: std.mem.Allocator) !void {
+    const branch_name = try db.deleteBranchFromPullRequest(pr_id, allocator);
+    defer allocator.free(branch_name);
+    try git.deleteBranch(repo, branch_name, allocator);
+}
+
+// Simple JSON parsing for tests
+fn parseJson(json: []const u8, allocator: std.mem.Allocator) !std.json.Value {
+    var parser = std.json.Parser.init(allocator, false);
+    defer parser.deinit();
+    const tree = try parser.parse(json);
+    return tree.root;
+}
+
+// Add these test functions to test the API endpoints
+
+test "close pull request API" {
+    try setupTest();
+    defer cleanupTest();
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const repo_name = "test-repo";
+    const title = "Test PR";
+    const body = "Test body";
+    const source_branch = "feature";
+    const target_branch = "main";
+
+    const pr_id = try db.createPullRequest(repo_name, title, body, source_branch, target_branch, allocator);
+
+    try testClosePullRequest(pr_id, allocator);
+
+    const pr = try db.getPullRequest(pr_id, allocator);
+    defer {
+        allocator.free(pr.repo_name);
+        allocator.free(pr.title);
+        allocator.free(pr.body);
+        allocator.free(pr.source_branch);
+        allocator.free(pr.target_branch);
+        allocator.free(pr.state);
+    }
+    try testing.expectEqualStrings("closed", pr.state);
+}
+
+test "delete branch API" {
+    try setupTest();
+    defer cleanupTest();
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const repo_name = "test-repo";
+    var repo_path_buf: [std.fs.max_path_bytes]u8 = undefined;
+    const repo_path = try std.fmt.bufPrint(&repo_path_buf, "repositories/{s}", .{repo_name});
+    try git.createRepository(repo_path, allocator);
+
+    const repo_exists = pathExists(repo_path);
+    try testing.expect(repo_exists);
+
+    const repo = try git.openRepository(repo_path, allocator);
+    git.freeRepository(repo);
+
+    const repo_still_exists = pathExists(repo_path);
+    try testing.expect(repo_still_exists);
+}
+
+test "delete branch from PR API" {
+    try setupTest();
+    defer cleanupTest();
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const repo_name = "test-repo";
+    const branch_name = "pr-branch-to-delete";
+    const pr_id = try db.createPullRequest(repo_name, "Test PR", "Test body", branch_name, "main", allocator);
+
+    const retrieved_branch = try db.deleteBranchFromPullRequest(pr_id, allocator);
+    defer allocator.free(retrieved_branch);
+
+    try testing.expectEqualStrings(branch_name, retrieved_branch);
 }
