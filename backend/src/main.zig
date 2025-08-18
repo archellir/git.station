@@ -4,6 +4,7 @@ const auth = @import("auth.zig");
 const db = @import("database.zig");
 
 pub const REPO_PATH = "./repositories";
+pub const STATIC_PATH = "../frontend/build";
 const SERVER_ADDRESS = "127.0.0.1:8080";
 
 pub const Connection = struct {
@@ -89,7 +90,7 @@ fn handleConnection(conn: Connection, allocator: std.mem.Allocator) void {
         };
         return;
     } else if (std.mem.eql(u8, method, "GET") and !std.mem.startsWith(u8, path, "/api/")) {
-        serveWelcomePage(conn) catch return sendError(conn, 500, "Failed to serve welcome page");
+        serveStaticFile(conn, path, allocator) catch return sendError(conn, 500, "Failed to serve static file");
         return;
     }
 
@@ -860,62 +861,78 @@ pub fn handleDeleteBranch(conn: Connection, request: []const u8, allocator: std.
     try sendJsonResponse(conn, 200, json);
 }
 
-pub fn serveWelcomePage(conn: Connection) !void {
-    const html =
-        \\HTTP/1.1 200 OK
-        \\Content-Type: text/html
-        \\Connection: close
-        \\
-        \\<!DOCTYPE html>
-        \\<html><head><title>Zig Git Service</title><style>
-        \\body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-        \\h1 { color: #2563EB; }
-        \\.btn { background: #2563EB; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; text-decoration: none; display: inline-block; }
-        \\pre { background: #f1f5f9; padding: 1rem; border-radius: 0.25rem; overflow: auto; }
-        \\</style></head>
-        \\<body><h1>Git Service</h1><p>Your private GitHub service is running!</p>
-        \\<h2>Features:</h2><ul>
-        \\<li>Git repository management</li>
-        \\<li>Issue tracking</li>
-        \\<li>Pull requests</li>
-        \\<li>Branch management</li>
-        \\</ul>
-        \\<p>Please log in using the frontend application to access all features.</p>
-        \\<h2>API Endpoints:</h2><pre>
-        \\# Authentication
-        \\POST /api/login - Log in with username and password
-        \\
-        \\# Repositories
-        \\GET /api/repos - List all repositories
-        \\POST /api/repos - Create a new repository
-        \\GET /api/repo/{name} - Get repository info
-        \\
-        \\# Branches
-        \\GET /api/repo/{name}/branches - List all branches
-        \\POST /api/repo/{name}/branches - Create a new branch
-        \\
-        \\# Commits
-        \\GET /api/repo/{name}/commits/{branch} - List commits on branch
-        \\
-        \\# Files
-        \\GET /api/repo/{name}/tree/{branch}/{path} - List files in directory
-        \\GET /api/repo/{name}/blob/{branch}/{path} - Get file content
-        \\
-        \\# Issues
-        \\GET /api/repo/{name}/issues - List issues
-        \\POST /api/repo/{name}/issues - Create a new issue
-        \\GET /api/repo/{name}/issues/{id} - Get issue details
-        \\PUT /api/repo/{name}/issues/{id} - Update an issue
-        \\
-        \\# Pull Requests
-        \\GET /api/repo/{name}/pulls - List pull requests
-        \\POST /api/repo/{name}/pulls - Create a new pull request
-        \\GET /api/repo/{name}/pulls/{id} - Get pull request details
-        \\PUT /api/repo/{name}/pulls/{id} - Update a pull request
-        \\PUT /api/repo/{name}/pulls/{id}/merge - Merge a pull request
-        \\</pre></body></html>
-    ;
-    _ = try conn.stream.write(html);
+pub fn serveStaticFile(conn: Connection, path: []const u8, allocator: std.mem.Allocator) !void {
+    const file_path = try allocator.alloc(u8, STATIC_PATH.len + path.len + 32);
+    defer allocator.free(file_path);
+    
+    // Handle SPA routing - serve index.html for non-file paths
+    var actual_path = path;
+    if (std.mem.eql(u8, path, "/")) {
+        actual_path = "/index.html";
+    } else if (!containsFileExtension(path)) {
+        // For SPA routes without extensions, serve index.html
+        actual_path = "/index.html";
+    }
+    
+    const full_path = try std.fmt.bufPrint(file_path, "{s}{s}", .{ STATIC_PATH, actual_path });
+    
+    // Try to read the file
+    const file = std.fs.cwd().openFile(full_path, .{}) catch |err| switch (err) {
+        error.FileNotFound => blk: {
+            // For 404s in SPA, serve index.html
+            const index_path = try std.fmt.bufPrint(file_path, "{s}/index.html", .{STATIC_PATH});
+            break :blk std.fs.cwd().openFile(index_path, .{}) catch {
+                return sendError(conn, 404, "File not found");
+            };
+        },
+        else => return sendError(conn, 500, "Internal server error"),
+    };
+    defer file.close();
+    
+    // Get file size
+    const file_size = try file.getEndPos();
+    
+    // Read file content
+    const content = try allocator.alloc(u8, file_size);
+    defer allocator.free(content);
+    _ = try file.readAll(content);
+    
+    // Determine content type
+    const content_type = getContentType(actual_path);
+    
+    // Send response
+    const header = try std.fmt.allocPrint(allocator, 
+        "HTTP/1.1 200 OK\r\n" ++
+        "Content-Type: {s}\r\n" ++
+        "Content-Length: {d}\r\n" ++
+        "Cache-Control: public, max-age=3600\r\n" ++
+        "Connection: close\r\n" ++
+        "\r\n", .{ content_type, file_size });
+    defer allocator.free(header);
+    
+    _ = try conn.stream.write(header);
+    _ = try conn.stream.write(content);
+}
+
+fn containsFileExtension(path: []const u8) bool {
+    // Check if path contains a file extension
+    const last_slash = std.mem.lastIndexOf(u8, path, "/") orelse 0;
+    const last_part = path[last_slash..];
+    return std.mem.indexOf(u8, last_part, ".") != null;
+}
+
+fn getContentType(path: []const u8) []const u8 {
+    if (std.mem.endsWith(u8, path, ".html")) return "text/html; charset=utf-8";
+    if (std.mem.endsWith(u8, path, ".js")) return "application/javascript";
+    if (std.mem.endsWith(u8, path, ".css")) return "text/css";
+    if (std.mem.endsWith(u8, path, ".json")) return "application/json";
+    if (std.mem.endsWith(u8, path, ".png")) return "image/png";
+    if (std.mem.endsWith(u8, path, ".jpg") or std.mem.endsWith(u8, path, ".jpeg")) return "image/jpeg";
+    if (std.mem.endsWith(u8, path, ".gif")) return "image/gif";
+    if (std.mem.endsWith(u8, path, ".svg")) return "image/svg+xml";
+    if (std.mem.endsWith(u8, path, ".ico")) return "image/x-icon";
+    if (std.mem.endsWith(u8, path, ".txt")) return "text/plain";
+    return "application/octet-stream";
 }
 
 pub fn sendJsonResponse(conn: Connection, status: u16, json: []const u8) !void {
