@@ -1,34 +1,9 @@
 <script lang="ts">
-	interface Repository {
-		name: string;
-		description: string;
-		language: string;
-		stars: number;
-		forks: number;
-		lastCommit: string;
-		status: 'active' | 'archived';
-	}
+	import type { Repository } from '$lib/types';
+	import { getLanguageColor, REPOSITORY_STATUS_COLORS, COLORS } from '$lib/constants';
+	import { RepositoryStatus } from '$lib/constants';
 	
 	let { repo }: { repo: Repository } = $props();
-	
-	const languageColors: Record<string, string> = {
-		TypeScript: 'text-blue-400',
-		JavaScript: 'text-yellow-400',
-		Python: 'text-green-400',
-		Rust: 'text-orange-400',
-		Go: 'text-cyan-400',
-		Java: 'text-red-400',
-		'C++': 'text-pink-400',
-		default: 'text-gray-400'
-	};
-	
-	const getLanguageColor = (language: string) => 
-		languageColors[language] || languageColors.default;
-	
-	const statusColors = {
-		active: 'text-terminal-green',
-		archived: 'text-terminal-amber'
-	};
 </script>
 
 <article class="cyber-card p-6 rounded-sm h-full flex flex-col">
@@ -46,7 +21,7 @@
 		</div>
 		
 		<div class="ml-4 flex items-center space-x-1">
-			<span class="text-xs {statusColors[repo.status]}">●</span>
+			<span class="text-xs {REPOSITORY_STATUS_COLORS[repo.status]}">●</span>
 			<span class="text-xs text-gray-500 uppercase font-mono">{repo.status}</span>
 		</div>
 	</div>
