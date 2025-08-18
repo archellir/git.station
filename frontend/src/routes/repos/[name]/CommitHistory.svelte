@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { Commit } from '$lib/types';
+	import { getCommitTypeColor } from '$lib/constants';
+	
 	let { branch }: { branch: string } = $props();
 	
 	// Mock commit data - will be replaced with API calls
@@ -62,14 +65,6 @@
 	
 	let selectedCommit = $state<string | null>(null);
 	
-	function getCommitTypeColor(message: string): string {
-		if (message.startsWith('feat')) return 'text-neon-green';
-		if (message.startsWith('fix')) return 'text-terminal-red';
-		if (message.startsWith('docs')) return 'text-neon-cyan';
-		if (message.startsWith('refactor')) return 'text-neon-purple';
-		if (message.startsWith('test')) return 'text-terminal-amber';
-		return 'text-gray-300';
-	}
 	
 	function copyCommitHash(hash: string) {
 		navigator.clipboard.writeText(hash);
