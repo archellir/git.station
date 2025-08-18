@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getFileLanguage } from '$lib/constants';
+	
 	let { file }: { file: string } = $props();
 	
 	// Mock file content - will be replaced with API calls
@@ -91,19 +93,6 @@
 	let language = $derived(getFileLanguage(file));
 	let lineCount = $derived(content.split('\n').length);
 	
-	function getFileLanguage(filename: string): string {
-		const ext = filename.split('.').pop()?.toLowerCase();
-		switch (ext) {
-			case 'js': return 'javascript';
-			case 'ts': return 'typescript';
-			case 'svelte': return 'svelte';
-			case 'css': return 'css';
-			case 'html': return 'html';
-			case 'json': return 'json';
-			case 'md': return 'markdown';
-			default: return 'text';
-		}
-	}
 	
 	function copyToClipboard() {
 		navigator.clipboard.writeText(content);
