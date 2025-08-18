@@ -1,6 +1,10 @@
 <script lang="ts">
 	import RepositoryCard from '../RepositoryCard.svelte';
 	import SearchBar from '../SearchBar.svelte';
+	import CreateRepositoryModal from '$lib/components/CreateRepositoryModal.svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	
 	// Mock repository data - will be replaced with API calls
 	let repositories = [
@@ -92,6 +96,25 @@
 	);
 	
 	const languages = [...new Set(repositories.map(r => r.language))];
+	
+	// Modal state
+	let showCreateModal = $state(false);
+	
+	function handleRepositoryCreated(repoName: string) {
+		// Refresh the repositories list (in a real app, this would refetch from API)
+		// For now, just navigate to the new repository
+		goto(`/repos/${repoName}`);
+	}
+	
+	// Check for new=true query parameter to auto-open modal
+	onMount(() => {
+		const urlParams = new URLSearchParams($page.url.search);
+		if (urlParams.get('new') === 'true') {
+			showCreateModal = true;
+			// Remove the query parameter from URL
+			goto('/repos', { replaceState: true });
+		}
+	});
 </script>
 
 <svelte:head>
@@ -113,7 +136,7 @@
 			</div>
 			
 			<div class="flex items-center space-x-4">
-				<button class="cyber-button">
+				<button class="cyber-button" onclick={() => showCreateModal = true}>
 					<span class="mr-2">+</span>
 					New Repository
 				</button>
@@ -258,3 +281,6 @@
 		</div>
 	</div>
 </div>
+
+<!-- Create Repository Modal -->
+<CreateRepositoryModal bind:isOpen={showCreateModal} {onRepositoryCreated} />
