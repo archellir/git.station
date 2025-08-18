@@ -1,14 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { NAV_ITEMS, COLORS } from '$lib/constants';
 	
 	let currentPath = $derived($page.url.pathname);
-	
-	const navItems = [
-		{ href: '/', label: 'Dashboard', icon: '⬢' },
-		{ href: '/repos', label: 'Repositories', icon: '📁' },
-		{ href: '/issues', label: 'Issues', icon: '⚠' },
-		{ href: '/pulls', label: 'Pull Requests', icon: '⇄' }
-	];
 </script>
 
 <nav class="cyber-bg-panel border-b border-gray-700">
@@ -24,7 +18,7 @@
 			
 			<!-- Navigation Links -->
 			<div class="hidden md:flex items-center space-x-1">
-				{#each navItems as item}
+				{#each NAV_ITEMS as item}
 					<a 
 						href={item.href}
 						class="px-4 py-2 rounded-sm transition-all duration-200 font-medium text-sm uppercase tracking-wider
@@ -54,7 +48,7 @@
 		<!-- Mobile Navigation -->
 		<div class="md:hidden pb-4">
 			<div class="flex flex-wrap gap-2">
-				{#each navItems as item}
+				{#each NAV_ITEMS as item}
 					<a 
 						href={item.href}
 						class="px-3 py-2 rounded-sm transition-all duration-200 font-medium text-xs uppercase tracking-wider
