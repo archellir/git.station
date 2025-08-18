@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { NAV_ITEMS, COLORS } from '$lib/constants';
 	
 	let currentPath = $derived($page.url.pathname);
+	
+	function handleNewRepo() {
+		goto('/repos?new=true');
+	}
 </script>
 
 <nav class="cyber-bg-panel border-b border-gray-700">
@@ -34,7 +39,7 @@
 			
 			<!-- User Actions -->
 			<div class="flex items-center space-x-4">
-				<button class="cyber-button text-xs">
+				<button class="cyber-button text-xs" onclick={handleNewRepo}>
 					<span class="mr-2">⚡</span>
 					New Repo
 				</button>
