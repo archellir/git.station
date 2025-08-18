@@ -1,0 +1,165 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+/* Cyberpunk Theme Configuration */
+@theme {
+  --color-cyber-black: #0a0a0a;
+  --color-cyber-dark: #111111;
+  --color-cyber-darker: #1a1a1a;
+  --color-cyber-gray: #2a2a2a;
+  --color-cyber-light-gray: #3a3a3a;
+  
+  --color-neon-green: #00ff41;
+  --color-neon-cyan: #00ffff;
+  --color-neon-pink: #ff0080;
+  --color-neon-purple: #8000ff;
+  --color-neon-blue: #0080ff;
+  --color-neon-yellow: #ffff00;
+  
+  --color-terminal-green: #00ff00;
+  --color-terminal-amber: #ffbf00;
+  --color-terminal-red: #ff0040;
+  
+  --color-glow-green-50: rgba(0, 255, 65, 0.1);
+  --color-glow-green-100: rgba(0, 255, 65, 0.2);
+  --color-glow-green-200: rgba(0, 255, 65, 0.3);
+  --color-glow-cyan-50: rgba(0, 255, 255, 0.1);
+  --color-glow-cyan-100: rgba(0, 255, 255, 0.2);
+  --color-glow-pink-50: rgba(255, 0, 128, 0.1);
+  --color-glow-pink-100: rgba(255, 0, 128, 0.2);
+}
+
+/* Global Cyberpunk Styles */
+html, body {
+  background-color: var(--color-cyber-black);
+  color: var(--color-neon-green);
+  font-family: 'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-feature-settings: 'liga' 1, 'calt' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Terminal-inspired scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cyber-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neon-green);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neon-cyan);
+  box-shadow: 0 0 8px var(--color-glow-cyan-100);
+}
+
+/* Cyberpunk component classes */
+.cyber-border {
+  border: 1px solid var(--color-neon-green);
+  box-shadow: 0 0 8px var(--color-glow-green-50);
+}
+
+.cyber-border-glow {
+  border: 1px solid var(--color-neon-green);
+  box-shadow: 
+    0 0 8px var(--color-glow-green-100),
+    inset 0 0 8px var(--color-glow-green-50);
+}
+
+.cyber-bg-dark {
+  background: linear-gradient(135deg, var(--color-cyber-black) 0%, var(--color-cyber-dark) 100%);
+}
+
+.cyber-bg-panel {
+  background: linear-gradient(135deg, var(--color-cyber-dark) 0%, var(--color-cyber-darker) 100%);
+  border: 1px solid var(--color-cyber-gray);
+}
+
+.cyber-text-glow {
+  text-shadow: 0 0 8px currentColor;
+}
+
+.cyber-button {
+  background: transparent;
+  border: 1px solid var(--color-neon-green);
+  color: var(--color-neon-green);
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-button:hover {
+  background: var(--color-glow-green-50);
+  box-shadow: 0 0 16px var(--color-glow-green-100);
+  transform: translateY(-1px);
+}
+
+.cyber-button:active {
+  transform: translateY(0);
+}
+
+.cyber-input {
+  background: var(--color-cyber-darker);
+  border: 1px solid var(--color-cyber-gray);
+  color: var(--color-neon-green);
+  padding: 0.75rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.cyber-input:focus {
+  outline: none;
+  border-color: var(--color-neon-green);
+  box-shadow: 0 0 8px var(--color-glow-green-100);
+}
+
+.cyber-card {
+  background: var(--color-cyber-dark);
+  border: 1px solid var(--color-cyber-gray);
+  transition: all 0.3s ease;
+}
+
+.cyber-card:hover {
+  border-color: var(--color-neon-green);
+  box-shadow: 0 0 16px var(--color-glow-green-50);
+  transform: translateY(-2px);
+}
+
+/* Glitch effect utility */
+.glitch {
+  position: relative;
+  animation: glitch 2s infinite;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+/* Terminal cursor animation */
+.terminal-cursor::after {
+  content: '▋';
+  animation: blink 1s infinite;
+  color: var(--color-neon-green);
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
