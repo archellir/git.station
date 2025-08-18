@@ -2,6 +2,9 @@ const std = @import("std");
 const git = @import("git.zig");
 const auth = @import("auth.zig");
 const db = @import("database.zig");
+const config = @import("config.zig");
+const errors = @import("errors.zig");
+const logger = @import("logger.zig");
 
 pub const REPO_PATH = "./repositories";
 pub const STATIC_PATH = "../frontend/build";
@@ -337,12 +340,14 @@ pub fn handleLogin(conn: Connection, request: []const u8, allocator: std.mem.All
         return error.InvalidCredentials;
     }
 
-    if (!auth.authenticate(username.?, password.?)) {
-        return error.InvalidCredentials;
-    }
+    const auth_result = auth.authenticate(username.?, password.?) catch return error.InternalError;
+    
+    const session = switch (auth_result) {
+        .ok => |s| s,
+        .err => return error.InvalidCredentials,
+    };
 
-    const token = try auth.createSession(allocator);
-    defer allocator.free(token);
+    const token = session.token;
 
     const cookie = try std.fmt.allocPrint(allocator, "session={s}; Path=/; HttpOnly", .{token});
     defer allocator.free(cookie);
