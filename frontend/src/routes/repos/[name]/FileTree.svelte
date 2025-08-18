@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { FileTreeItem } from '$lib/types';
+	import { getFileIcon } from '$lib/constants';
+	
 	let { selectedFile = $bindable(), branch }: { 
 		selectedFile: string | null; 
 		branch: string;
@@ -45,20 +48,11 @@
 		expandedDirs = new Set(expandedDirs);
 	}
 	
-	function getFileIcon(name: string, type: string) {
-		if (type === 'directory') return expandedDirs.has(name) ? '📂' : '📁';
-		
-		const ext = name.split('.').pop()?.toLowerCase();
-		switch (ext) {
-			case 'js': case 'ts': return '⚡';
-			case 'svelte': return '🔶';
-			case 'css': return '🎨';
-			case 'html': return '🌐';
-			case 'json': return '📋';
-			case 'md': return '📝';
-			case 'gitignore': return '🚫';
-			default: return '📄';
+	function getFileIconWithState(name: string, type: 'file' | 'directory') {
+		if (type === 'directory') {
+			return getFileIcon(name, type, expandedDirs.has(name));
 		}
+		return getFileIcon(name, type);
 	}
 	
 	function renderFileTree(items: any[], parentPath = '') {
@@ -89,7 +83,7 @@
 				class="flex items-center space-x-2 w-full p-2 text-left hover:bg-glow-green-50 rounded-sm transition-colors group"
 			>
 				<span class="text-neon-cyan group-hover:text-neon-green transition-colors">
-					{getFileIcon(item.path, item.type)}
+					{getFileIconWithState(item.path, item.type)}
 				</span>
 				<span class="text-gray-300 group-hover:text-neon-green transition-colors font-mono text-sm">
 					{item.name}
@@ -111,7 +105,7 @@
 			>
 				<div class="flex items-center space-x-2 min-w-0 flex-1">
 					<span class="text-neon-yellow group-hover:text-neon-green transition-colors">
-						{getFileIcon(item.name, item.type)}
+						{getFileIconWithState(item.name, item.type)}
 					</span>
 					<span class="text-gray-300 group-hover:text-neon-green transition-colors font-mono text-sm truncate">
 						{item.name}
