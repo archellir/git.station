@@ -1,19 +1,7 @@
 <script lang="ts">
 	import SearchBar from '../SearchBar.svelte';
-	
-	interface Issue {
-		id: number;
-		title: string;
-		body: string;
-		state: 'open' | 'closed';
-		author: string;
-		assignee?: string;
-		labels: string[];
-		createdAt: string;
-		updatedAt: string;
-		comments: number;
-		repository: string;
-	}
+	import type { Issue, FilterState } from '$lib/types';
+	import { IssueState, getLabelColor, COLORS } from '$lib/constants';
 	
 	// Mock issue data - will be replaced with API calls
 	let issues: Issue[] = [
@@ -21,7 +9,7 @@
 			id: 1,
 			title: 'Authentication session timeout not working correctly',
 			body: 'Users are experiencing unexpected logouts during active sessions. The session timeout mechanism needs investigation.',
-			state: 'open',
+			state: IssueState.OPEN,
 			author: 'security-team',
 			assignee: 'backend-dev',
 			labels: ['bug', 'security', 'high-priority'],
@@ -34,7 +22,7 @@
 			id: 2,
 			title: 'Add syntax highlighting for Zig language files',
 			body: 'The code viewer currently doesn\'t support syntax highlighting for .zig files. Would be great to add support.',
-			state: 'open',
+			state: IssueState.OPEN,
 			author: 'ui-architect',
 			labels: ['enhancement', 'frontend', 'good-first-issue'],
 			createdAt: '2025-08-17T16:22:00Z',
@@ -46,7 +34,7 @@
 			id: 3,
 			title: 'Repository creation API returns 500 error',
 			body: 'Creating repositories through the API endpoint fails with internal server error. Logs show SQLite connection issue.',
-			state: 'closed',
+			state: IssueState.CLOSED,
 			author: 'qa-tester',
 			assignee: 'backend-team',
 			labels: ['bug', 'api', 'resolved'],
@@ -58,7 +46,7 @@
 	];
 	
 	let searchQuery = $state('');
-	let selectedState = $state<'all' | 'open' | 'closed'>('all');
+	let selectedState = $state<FilterState>('all');
 	let selectedRepository = $state('All Repositories');
 	let selectedLabel = $state('All Labels');
 	
@@ -77,19 +65,6 @@
 	const allLabels = [...new Set(issues.flatMap(i => i.labels))];
 	const allRepos = [...new Set(issues.map(i => i.repository))];
 	
-	function getLabelColor(label: string): string {
-		const colors: Record<string, string> = {
-			'bug': 'text-terminal-red bg-red-900/20 border-terminal-red',
-			'enhancement': 'text-neon-green bg-green-900/20 border-neon-green',
-			'security': 'text-neon-purple bg-purple-900/20 border-neon-purple',
-			'frontend': 'text-neon-cyan bg-cyan-900/20 border-neon-cyan',
-			'api': 'text-terminal-amber bg-yellow-900/20 border-terminal-amber',
-			'high-priority': 'text-neon-pink bg-pink-900/20 border-neon-pink',
-			'good-first-issue': 'text-neon-green bg-green-900/20 border-neon-green',
-			'resolved': 'text-gray-400 bg-gray-900/20 border-gray-400'
-		};
-		return colors[label] || 'text-gray-400 bg-gray-900/20 border-gray-400';
-	}
 	
 	function formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString();
@@ -109,8 +84,8 @@
 					<span class="text-neon-cyan">></span> Issue Tracker
 				</h1>
 				<p class="text-gray-400">
-					<span class="text-neon-green font-mono">{issues.filter(i => i.state === 'open').length}</span> open •
-					<span class="text-gray-300 font-mono">{issues.filter(i => i.state === 'closed').length}</span> closed •
+					<span class="text-neon-green font-mono">{issues.filter(i => i.state === IssueState.OPEN).length}</span> open •
+					<span class="text-gray-300 font-mono">{issues.filter(i => i.state === IssueState.CLOSED).length}</span> closed •
 					<span class="text-gray-300 font-mono">{issues.length}</span> total issues
 				</p>
 			</div>
@@ -146,22 +121,22 @@
 						All ({issues.length})
 					</button>
 					<button
-						onclick={() => selectedState = 'open'}
+						onclick={() => selectedState = IssueState.OPEN}
 						class="px-4 py-2 text-sm border-l border-gray-700 transition-colors
-							{selectedState === 'open' 
+							{selectedState === IssueState.OPEN 
 								? 'bg-glow-green-50 text-neon-green border-neon-green' 
 								: 'text-gray-300 hover:text-neon-green hover:bg-glow-green-50'}"
 					>
-						Open ({issues.filter(i => i.state === 'open').length})
+						Open ({issues.filter(i => i.state === IssueState.OPEN).length})
 					</button>
 					<button
-						onclick={() => selectedState = 'closed'}
+						onclick={() => selectedState = IssueState.CLOSED}
 						class="px-4 py-2 text-sm border-l border-gray-700 transition-colors
-							{selectedState === 'closed' 
+							{selectedState === IssueState.CLOSED 
 								? 'bg-glow-green-50 text-neon-green border-neon-green' 
 								: 'text-gray-300 hover:text-neon-green hover:bg-glow-green-50'}"
 					>
-						Closed ({issues.filter(i => i.state === 'closed').length})
+						Closed ({issues.filter(i => i.state === IssueState.CLOSED).length})
 					</button>
 				</div>
 				
@@ -189,7 +164,7 @@
 				<div class="flex items-start space-x-4">
 					<!-- State Indicator -->
 					<div class="flex-shrink-0 mt-1">
-						{#if issue.state === 'open'}
+						{#if issue.state === IssueState.OPEN}
 							<div class="w-4 h-4 rounded-full bg-neon-green flex items-center justify-center" title="Open">
 								<span class="text-xs text-black">●</span>
 							</div>
