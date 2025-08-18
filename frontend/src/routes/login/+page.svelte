@@ -114,10 +114,11 @@
 					
 					<!-- Username Input -->
 					<div class="space-y-2">
-						<label class="block text-neon-green text-sm font-mono">
+						<label for="username" class="block text-neon-green text-sm font-mono">
 							<span class="terminal-cursor">USERNAME:</span>
 						</label>
 						<input
+							id="username"
 							type="text"
 							bind:value={username}
 							oninput={clearError}
@@ -131,10 +132,11 @@
 					
 					<!-- Password Input -->
 					<div class="space-y-2">
-						<label class="block text-neon-green text-sm font-mono">
+						<label for="password" class="block text-neon-green text-sm font-mono">
 							<span class="terminal-cursor">PASSWORD:</span>
 						</label>
 						<input
+							id="password"
 							type="password"
 							bind:value={password}
 							oninput={clearError}

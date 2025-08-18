@@ -2,80 +2,92 @@
 	let { file }: { file: string } = $props();
 	
 	// Mock file content - will be replaced with API calls
-	const fileContents: Record<string, string> = {
-		'package.json': `{
-  "name": "awesome-project",
-  "version": "1.0.0",
-  "description": "A cyberpunk-themed web application",
-  "type": "module",
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "devDependencies": {
-    "@sveltejs/kit": "^2.0.0",
-    "@tailwindcss/vite": "^4.0.0",
-    "svelte": "^5.0.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vite": "^7.0.0"
-  }
-}`,
-		'README.md': `# Awesome Project
-
-A cyberpunk-themed web application with neon aesthetics and terminal-inspired interface design.
-
-## Features
-
-- 🌟 Cyberpunk UI with neon colors
-- 🖥️ Terminal-inspired design
-- ⚡ Built with SvelteKit and TypeScript
-- 🎨 Styled with Tailwind CSS
-
-## Getting Started
-
-\`\`\`bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-\`\`\`
-
-## License
-
-MIT License`,
-		'src/app.css': `@import 'tailwindcss';
-
-/* Cyberpunk Theme Configuration */
-:root {
-  --color-cyber-black: #0a0a0a;
-  --color-neon-green: #00ff41;
-  --color-neon-cyan: #00ffff;
-}
-
-html, body {
-  background-color: var(--color-cyber-black);
-  color: var(--color-neon-green);
-  font-family: 'JetBrains Mono', monospace;
-}`,
-		'src/routes/+page.svelte': `<script lang="ts">
-  import { onMount } from 'svelte';
-  
-  let count = $state(0);
-  
-  function increment() {
-    count++;
-  }
-</script>
-
-<h1>Welcome to the Cyberpunk Future</h1>
-<p>Counter: {count}</p>
-<button onclick={increment}>Increment</button>`
-	};
+	function getFileContent(filename: string): string {
+		switch (filename) {
+			case 'package.json':
+				return JSON.stringify({
+					name: "awesome-project",
+					version: "1.0.0",
+					description: "A cyberpunk-themed web application",
+					type: "module",
+					scripts: {
+						dev: "vite dev",
+						build: "vite build",
+						preview: "vite preview"
+					},
+					devDependencies: {
+						"@sveltejs/kit": "^2.0.0",
+						"@tailwindcss/vite": "^4.0.0",
+						svelte: "^5.0.0",
+						tailwindcss: "^4.0.0",
+						typescript: "^5.0.0",
+						vite: "^7.0.0"
+					}
+				}, null, 2);
+			case 'README.md':
+				return [
+					'# Awesome Project',
+					'',
+					'A cyberpunk-themed web application with neon aesthetics.',
+					'',
+					'## Features',
+					'',
+					'- 🌟 Cyberpunk UI with neon colors',
+					'- 🖥️ Terminal-inspired design',
+					'- ⚡ Built with SvelteKit and TypeScript',
+					'- 🎨 Styled with Tailwind CSS',
+					'',
+					'## Getting Started',
+					'',
+					'```bash',
+					'# Install dependencies',
+					'npm install',
+					'',
+					'# Start development server',
+					'npm run dev',
+					'```',
+					'',
+					'## License',
+					'',
+					'MIT License'
+				].join('\n');
+			case 'src/app.css':
+				return [
+					'@import \'tailwindcss\';',
+					'',
+					'/* Cyberpunk Theme Configuration */',
+					':root {',
+					'  --color-cyber-black: #0a0a0a;',
+					'  --color-neon-green: #00ff41;',
+					'  --color-neon-cyan: #00ffff;',
+					'}',
+					'',
+					'html, body {',
+					'  background-color: var(--color-cyber-black);',
+					'  color: var(--color-neon-green);',
+					'  font-family: \'JetBrains Mono\', monospace;',
+					'}'
+				].join('\n');
+			case 'src/routes/+page.svelte':
+				return [
+					'<script lang="ts">',
+					'  let count = $state(0);',
+					'  ',
+					'  function increment() {',
+					'    count++;',
+					'  }',
+					'</' + 'script>',
+					'',
+					'<h1>Welcome to the Cyberpunk Future</h1>',
+					'<p>Counter: {count}</p>',
+					'<button onclick={increment}>Increment</button>'
+				].join('\n');
+			default:
+				return `// File: ${filename}\n// Content loading...`;
+		}
+	}
 	
-	let content = $derived(fileContents[file] || `// File: ${file}\n// Content loading...`);
+	let content = $derived(getFileContent(file));
 	let language = $derived(getFileLanguage(file));
 	let lineCount = $derived(content.split('\n').length);
 	

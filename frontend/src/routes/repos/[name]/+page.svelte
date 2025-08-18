@@ -11,7 +11,7 @@
 	let selectedFile = $state<string | null>(null);
 	
 	// Mock data - will be replaced with API calls
-	let repository = {
+	let repository = $derived({
 		name: repoName,
 		description: 'A cyberpunk-themed web application with neon aesthetics',
 		language: 'TypeScript',
@@ -24,17 +24,17 @@
 		status: 'active',
 		size: '2.3 MB',
 		license: 'MIT'
-	};
+	});
 	
-	let branches = repository.branches;
+	let branches = $derived(repository.branches);
 	
-	const tabs = [
+	let tabs = $derived([
 		{ id: 'files', label: 'Files', icon: '📁', count: null },
 		{ id: 'commits', label: 'Commits', icon: '🔄', count: '156' },
 		{ id: 'branches', label: 'Branches', icon: '🌿', count: branches.length.toString() },
 		{ id: 'issues', label: 'Issues', icon: '⚠', count: repository.issues.toString() },
 		{ id: 'pulls', label: 'Pull Requests', icon: '⇄', count: repository.pullRequests.toString() }
-	] as const;
+	] as const);
 </script>
 
 <svelte:head>
