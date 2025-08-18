@@ -1,25 +1,7 @@
 <script lang="ts">
 	import SearchBar from '../SearchBar.svelte';
-	
-	interface PullRequest {
-		id: number;
-		title: string;
-		body: string;
-		state: 'open' | 'closed' | 'merged';
-		author: string;
-		reviewers: string[];
-		sourceBranch: string;
-		targetBranch: string;
-		repository: string;
-		createdAt: string;
-		updatedAt: string;
-		comments: number;
-		commits: number;
-		additions: number;
-		deletions: number;
-		filesChanged: number;
-		labels: string[];
-	}
+	import type { PullRequest, FilterState } from '$lib/types';
+	import { PullRequestState, getLabelColor, PULL_REQUEST_STATE_COLORS, PULL_REQUEST_ICONS } from '$lib/constants';
 	
 	// Mock PR data - will be replaced with API calls
 	let pullRequests: PullRequest[] = [
@@ -27,7 +9,7 @@
 			id: 1,
 			title: 'feat(ui): implement dark mode toggle functionality',
 			body: 'Adds a dark mode toggle to the application settings. Includes proper theme persistence and system preference detection.',
-			state: 'open',
+			state: PullRequestState.OPEN,
 			author: 'ui-architect',
 			reviewers: ['tech-lead', 'ux-designer'],
 			sourceBranch: 'feature/dark-mode',
@@ -46,7 +28,7 @@
 			id: 2,
 			title: 'fix(auth): resolve session cleanup on logout',
 			body: 'Fixes issue where user sessions were not properly cleaned up on logout, causing memory leaks in long-running instances.',
-			state: 'merged',
+			state: PullRequestState.MERGED,
 			author: 'backend-team',
 			reviewers: ['security-team'],
 			sourceBranch: 'hotfix/session-cleanup',
@@ -65,7 +47,7 @@
 			id: 3,
 			title: 'refactor(api): extract common response handlers',
 			body: 'Refactors the API layer to use common response handlers, reducing code duplication and improving maintainability.',
-			state: 'closed',
+			state: PullRequestState.CLOSED,
 			author: 'backend-dev',
 			reviewers: ['tech-lead'],
 			sourceBranch: 'refactor/response-handlers',
@@ -83,7 +65,7 @@
 	];
 	
 	let searchQuery = $state('');
-	let selectedState = $state<'all' | 'open' | 'closed' | 'merged'>('all');
+	let selectedState = $state<FilterState>('all');
 	let selectedRepository = $state('All Repositories');
 	let selectedAuthor = $state('All Authors');
 	
@@ -102,38 +84,6 @@
 	const allRepos = [...new Set(pullRequests.map(pr => pr.repository))];
 	const allAuthors = [...new Set(pullRequests.map(pr => pr.author))];
 	
-	function getStateColor(state: string): string {
-		switch (state) {
-			case 'open': return 'text-neon-green bg-green-900/20 border-neon-green';
-			case 'merged': return 'text-neon-purple bg-purple-900/20 border-neon-purple';
-			case 'closed': return 'text-terminal-red bg-red-900/20 border-terminal-red';
-			default: return 'text-gray-400 bg-gray-900/20 border-gray-400';
-		}
-	}
-	
-	function getStateIcon(state: string): string {
-		switch (state) {
-			case 'open': return '⇄';
-			case 'merged': return '✓';
-			case 'closed': return '✕';
-			default: return '?';
-		}
-	}
-	
-	function getLabelColor(label: string): string {
-		const colors: Record<string, string> = {
-			'enhancement': 'text-neon-green bg-green-900/20 border-neon-green',
-			'bug': 'text-terminal-red bg-red-900/20 border-terminal-red',
-			'frontend': 'text-neon-cyan bg-cyan-900/20 border-neon-cyan',
-			'ui': 'text-neon-pink bg-pink-900/20 border-neon-pink',
-			'security': 'text-neon-purple bg-purple-900/20 border-neon-purple',
-			'hotfix': 'text-terminal-amber bg-yellow-900/20 border-terminal-amber',
-			'refactor': 'text-gray-300 bg-gray-900/20 border-gray-300',
-			'api': 'text-neon-cyan bg-cyan-900/20 border-neon-cyan',
-			'maintenance': 'text-gray-400 bg-gray-900/20 border-gray-400'
-		};
-		return colors[label] || 'text-gray-400 bg-gray-900/20 border-gray-400';
-	}
 	
 	function formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString();
@@ -153,9 +103,9 @@
 					<span class="text-neon-cyan">></span> Pull Requests
 				</h1>
 				<p class="text-gray-400">
-					<span class="text-neon-green font-mono">{pullRequests.filter(pr => pr.state === 'open').length}</span> open •
-					<span class="text-neon-purple font-mono">{pullRequests.filter(pr => pr.state === 'merged').length}</span> merged •
-					<span class="text-terminal-red font-mono">{pullRequests.filter(pr => pr.state === 'closed').length}</span> closed
+					<span class="text-neon-green font-mono">{pullRequests.filter(pr => pr.state === PullRequestState.OPEN).length}</span> open •
+					<span class="text-neon-purple font-mono">{pullRequests.filter(pr => pr.state === PullRequestState.MERGED).length}</span> merged •
+					<span class="text-terminal-red font-mono">{pullRequests.filter(pr => pr.state === PullRequestState.CLOSED).length}</span> closed
 				</p>
 			</div>
 			
@@ -242,8 +192,8 @@
 				<div class="flex items-start space-x-4">
 					<!-- State Indicator -->
 					<div class="flex-shrink-0 mt-1">
-						<div class="w-6 h-6 rounded-sm border flex items-center justify-center {getStateColor(pr.state)}">
-							<span class="text-sm">{getStateIcon(pr.state)}</span>
+						<div class="w-6 h-6 rounded-sm border flex items-center justify-center {PULL_REQUEST_STATE_COLORS[pr.state]}">
+							<span class="text-sm">{PULL_REQUEST_ICONS[pr.state]}</span>
 						</div>
 					</div>
 					
@@ -256,7 +206,7 @@
 									{pr.title}
 								</a>
 							</h3>
-							<span class="px-2 py-1 text-xs rounded-sm border {getStateColor(pr.state)} uppercase">
+							<span class="px-2 py-1 text-xs rounded-sm border {PULL_REQUEST_STATE_COLORS[pr.state]} uppercase">
 								{pr.state}
 							</span>
 						</div>
@@ -337,7 +287,7 @@
 					</div>
 					
 					<!-- Actions -->
-					{#if pr.state === 'open'}
+					{#if pr.state === PullRequestState.OPEN}
 						<div class="flex flex-col gap-2">
 							<button class="cyber-button text-xs">
 								Review
