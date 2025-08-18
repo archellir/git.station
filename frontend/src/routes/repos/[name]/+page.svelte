@@ -3,38 +3,40 @@
 	import FileTree from './FileTree.svelte';
 	import CommitHistory from './CommitHistory.svelte';
 	import CodeViewer from './CodeViewer.svelte';
+	import type { RepositoryDetails } from '$lib/types';
+	import { RepositoryTabType, ProgrammingLanguage, RepositoryStatus, REPO_TABS, getLanguageColor } from '$lib/constants';
 	
 	let repoName = $derived($page.params.name);
 	let currentBranch = $state('main');
 	let currentPath = $state('');
-	let activeTab = $state<'files' | 'commits' | 'branches' | 'issues' | 'pulls'>('files');
+	let activeTab = $state<RepositoryTabType>(RepositoryTabType.FILES);
 	let selectedFile = $state<string | null>(null);
 	
 	// Mock data - will be replaced with API calls
 	let repository = $derived({
 		name: repoName,
 		description: 'A cyberpunk-themed web application with neon aesthetics',
-		language: 'TypeScript',
+		language: ProgrammingLanguage.TYPESCRIPT,
 		stars: 42,
 		forks: 7,
 		issues: 3,
 		pullRequests: 2,
 		branches: ['main', 'develop', 'feature/auth', 'hotfix/security'],
 		lastCommit: '2 hours ago',
-		status: 'active',
+		status: RepositoryStatus.ACTIVE,
 		size: '2.3 MB',
 		license: 'MIT'
 	});
 	
 	let branches = $derived(repository.branches);
 	
-	let tabs = $derived([
-		{ id: 'files', label: 'Files', icon: '📁', count: null },
-		{ id: 'commits', label: 'Commits', icon: '🔄', count: '156' },
-		{ id: 'branches', label: 'Branches', icon: '🌿', count: branches.length.toString() },
-		{ id: 'issues', label: 'Issues', icon: '⚠', count: repository.issues.toString() },
-		{ id: 'pulls', label: 'Pull Requests', icon: '⇄', count: repository.pullRequests.toString() }
-	] as const);
+	let tabs = $derived(REPO_TABS.map(tab => ({
+		...tab,
+		count: tab.id === RepositoryTabType.BRANCHES ? branches.length.toString() :
+			   tab.id === RepositoryTabType.ISSUES ? repository.issues.toString() :
+			   tab.id === RepositoryTabType.PULLS ? repository.pullRequests.toString() :
+			   tab.count
+	})));
 </script>
 
 <svelte:head>
@@ -59,8 +61,8 @@
 				
 				<div class="flex flex-wrap gap-4 text-sm text-gray-400">
 					<div class="flex items-center space-x-1">
-						<span class="w-3 h-3 rounded-full bg-blue-400"></span>
-						<span>{repository.language}</span>
+						<span class="w-3 h-3 rounded-full {getLanguageColor(repository.language)} border-current bg-current bg-opacity-20"></span>
+						<span class="{getLanguageColor(repository.language)}">{repository.language}</span>
 					</div>
 					<div class="flex items-center space-x-1">
 						<span class="text-neon-yellow">⭐</span>
@@ -132,7 +134,7 @@
 	
 	<!-- Tab Content -->
 	<div class="grid gap-6">
-		{#if activeTab === 'files'}
+		{#if activeTab === RepositoryTabType.FILES}
 			<div class="grid lg:grid-cols-3 gap-6">
 				<!-- File Tree -->
 				<div class="lg:col-span-1">
@@ -157,9 +159,9 @@
 					{/if}
 				</div>
 			</div>
-		{:else if activeTab === 'commits'}
+		{:else if activeTab === RepositoryTabType.COMMITS}
 			<CommitHistory branch={currentBranch} />
-		{:else if activeTab === 'branches'}
+		{:else if activeTab === RepositoryTabType.BRANCHES}
 			<div class="cyber-bg-panel p-6 rounded-sm">
 				<div class="flex items-center justify-between mb-6">
 					<h3 class="text-xl font-semibold cyber-text-glow">
@@ -198,7 +200,7 @@
 					{/each}
 				</div>
 			</div>
-		{:else if activeTab === 'issues'}
+		{:else if activeTab === RepositoryTabType.ISSUES}
 			<div class="cyber-bg-panel p-6 rounded-sm">
 				<div class="flex items-center justify-between mb-6">
 					<h3 class="text-xl font-semibold cyber-text-glow">
@@ -219,7 +221,7 @@
 					</button>
 				</div>
 			</div>
-		{:else if activeTab === 'pulls'}
+		{:else if activeTab === RepositoryTabType.PULLS}
 			<div class="cyber-bg-panel p-6 rounded-sm">
 				<div class="flex items-center justify-between mb-6">
 					<h3 class="text-xl font-semibold cyber-text-glow">
