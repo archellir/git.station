@@ -2,6 +2,7 @@
 	import RepositoryCard from '../RepositoryCard.svelte';
 	import SearchBar from '../SearchBar.svelte';
 	import CreateRepositoryModal from '$lib/components/CreateRepositoryModal.svelte';
+	import CyberButton from '$lib/components/CyberButton.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
@@ -136,14 +137,19 @@
 			</div>
 			
 			<div class="flex items-center space-x-3">
-				<button class="cyber-button text-base px-6 py-3" onclick={() => showCreateModal = true}>
-					<span class="mr-2">+</span>
+				<CyberButton
+					size="lg"
+					onclick={() => showCreateModal = true}
+					icon="+"
+				>
 					Initialize Repository
-				</button>
-				<button class="cyber-button-secondary">
-					<span class="mr-2">📥</span>
+				</CyberButton>
+				<CyberButton
+					variant="secondary"
+					icon="📥"
+				>
 					Import Existing
-				</button>
+				</CyberButton>
 			</div>
 		</div>
 	</div>
@@ -178,13 +184,13 @@
 					<option value="updated">Sort by Updated</option>
 				</select>
 				
-				<button 
+				<CyberButton
+					size="sm"
 					onclick={() => sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'}
-					class="cyber-button text-sm px-3"
 					title={sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}
 				>
 					{sortOrder === 'asc' ? '↓' : '↑'}
-				</button>
+				</CyberButton>
 			</div>
 		</div>
 		
@@ -196,34 +202,35 @@
 				{#if searchQuery}
 					<span class="inline-flex items-center gap-1 px-2 py-1 bg-glow-green-50 border border-neon-green text-neon-green text-xs rounded-sm">
 						Search: "{searchQuery}"
-						<button onclick={() => searchQuery = ''} class="hover:text-neon-cyan">✕</button>
+						<CyberButton size="xs" variant="text" onclick={() => searchQuery = ''} class="hover:text-neon-cyan ml-1">✕</CyberButton>
 					</span>
 				{/if}
 				
 				{#if selectedLanguage !== 'All Languages'}
 					<span class="inline-flex items-center gap-1 px-2 py-1 bg-glow-cyan-50 border border-neon-cyan text-neon-cyan text-xs rounded-sm">
 						Language: {selectedLanguage}
-						<button onclick={() => selectedLanguage = 'All Languages'} class="hover:text-neon-green">✕</button>
+						<CyberButton size="xs" variant="text" onclick={() => selectedLanguage = 'All Languages'} class="hover:text-neon-green ml-1">✕</CyberButton>
 					</span>
 				{/if}
 				
 				{#if selectedStatus !== 'All Status'}
 					<span class="inline-flex items-center gap-1 px-2 py-1 bg-glow-pink-50 border border-neon-pink text-neon-pink text-xs rounded-sm">
 						Status: {selectedStatus}
-						<button onclick={() => selectedStatus = 'All Status'} class="hover:text-neon-green">✕</button>
+						<CyberButton size="xs" variant="text" onclick={() => selectedStatus = 'All Status'} class="hover:text-neon-green ml-1">✕</CyberButton>
 					</span>
 				{/if}
 				
-				<button 
+				<CyberButton
+					variant="text"
+					size="xs"
 					onclick={() => {
 						searchQuery = '';
 						selectedLanguage = 'All Languages';
 						selectedStatus = 'All Status';
 					}}
-					class="text-xs text-gray-400 hover:text-neon-green transition-colors underline"
 				>
 					Clear all
-				</button>
+				</CyberButton>
 			</div>
 		{/if}
 	</div>
@@ -244,16 +251,15 @@
 							Adjust your filters to see more repositories
 						{/if}
 					</p>
-					<button 
+					<CyberButton
 						onclick={() => {
 							searchQuery = '';
 							selectedLanguage = 'All Languages';
 							selectedStatus = 'All Status';
 						}}
-						class="cyber-button"
 					>
 						Reset Filters
-					</button>
+					</CyberButton>
 				</div>
 			</div>
 		{/each}
