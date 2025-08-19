@@ -255,8 +255,6 @@ pub const MiddlewareStack = struct {
     
     pub fn execute(self: *MiddlewareStack, request: *http.Request, final_handler: RouteHandler, allocator: std.mem.Allocator) !http.Response {
         _ = self;
-        _ = request;
-        _ = allocator;
         
         // For now, just call the final handler
         // TODO: Implement middleware chain execution
