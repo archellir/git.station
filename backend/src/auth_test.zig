@@ -1,6 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 const auth = @import("auth.zig");
+const config = @import("config.zig");
 
 // Reset the auth system before each test
 fn setupTest() void {
