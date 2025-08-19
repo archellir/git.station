@@ -10,7 +10,9 @@ fn setupTest() void {
 }
 
 test "authenticate with valid credentials" {
-    try testing.expect(auth.authenticate(auth.ADMIN_USERNAME, auth.ADMIN_PASSWORD));
+    setupTest();
+    const result = try auth.authenticate(config.Config.ADMIN_USERNAME, config.Config.ADMIN_PASSWORD);
+    try testing.expect(result == .ok);
 }
 
 test "authenticate with invalid username" {
