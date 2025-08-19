@@ -78,12 +78,23 @@
 
 {#if isOpen}
 	<!-- Modal Backdrop -->
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick={closeModal}>
+	<div 
+		class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+		onclick={closeModal}
+		onkeydown={(e) => e.key === 'Escape' && closeModal()}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="modal-title"
+		tabindex="-1"
+	>
 		<!-- Modal Content -->
-		<div class="cyber-bg-panel p-6 rounded-sm max-w-md w-full mx-4 border border-gray-700" onclick={(e) => e.stopPropagation()}>
+		<div 
+			class="cyber-bg-panel p-6 rounded-sm max-w-md w-full mx-4 border border-gray-700" 
+			onclick={(e) => e.stopPropagation()}
+		>
 			<!-- Header -->
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-xl font-bold cyber-text-glow">
+				<h2 id="modal-title" class="text-xl font-bold cyber-text-glow">
 					<span class="text-neon-green">></span> Create Repository
 				</h2>
 				<button onclick={closeModal} class="text-gray-400 hover:text-neon-green transition-colors">
