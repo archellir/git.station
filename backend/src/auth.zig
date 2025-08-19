@@ -73,8 +73,9 @@ pub const AuthManager = struct {
         // Clean up sessions
         var session_iter = self.sessions.iterator();
         while (session_iter.next()) |entry| {
+            // Free the key (which is the same as the token)
             self.allocator.free(entry.key_ptr.*);
-            self.allocator.free(entry.value_ptr.token);
+            // Free the username (token is same as key, so don't double-free)
             self.allocator.free(entry.value_ptr.username);
         }
         self.sessions.deinit();
@@ -134,20 +135,20 @@ pub const AuthManager = struct {
         var token_buf: [config.Config.SESSION_TOKEN_LENGTH]u8 = undefined;
         std.crypto.random.bytes(&token_buf);
         
-        // Format as hex string
+        // Format as hex string - this will be our key and session token
         const token = try std.fmt.allocPrint(self.allocator, "{s}", .{std.fmt.fmtSliceHexLower(&token_buf)});
         
         const now = std.time.timestamp();
         const session = Session{
-            .token = token,
+            .token = token, // Use the same token string
             .username = try self.allocator.dupe(u8, username),
             .created_at = now,
             .expires_at = now + self.session_duration,
         };
         
-        // Store session
-        const token_key = try self.allocator.dupe(u8, token);
-        try self.sessions.put(token_key, session);
+        // Store session using the token as both key and value.token
+        // HashMap will take ownership of the key
+        try self.sessions.put(token, session);
         
         logger.debug("Session created for user: {s}", .{username});
         return session;
@@ -168,22 +169,21 @@ pub const AuthManager = struct {
     }
     
     pub fn removeSession(self: *AuthManager, token: []const u8) !void {
+        // Get the session before removing it
         const session = self.sessions.get(token) orelse return;
         
-        // Free allocated memory
-        self.allocator.free(session.token);
-        self.allocator.free(session.username);
+        // Make copies of data we need for cleanup
+        const session_copy = session;
         
-        // Remove from map
-        _ = self.sessions.remove(token);
-        
-        // Free the key
-        var key_iter = self.sessions.iterator();
-        while (key_iter.next()) |entry| {
-            if (std.mem.eql(u8, entry.key_ptr.*, token)) {
-                self.allocator.free(entry.key_ptr.*);
-                break;
-            }
+        // Remove from map first - this handles the key cleanup automatically
+        const removed = self.sessions.fetchRemove(token);
+        if (removed) |entry| {
+            // Free the key that was stored in the map
+            self.allocator.free(entry.key);
+            
+            // Free the session data (username was allocated separately)
+            self.allocator.free(session_copy.username);
+            // Note: token is the same as the key, so it's already freed above
         }
         
         logger.debug("Session removed: {s}", .{token});
