@@ -16,7 +16,9 @@ test "authenticate with valid credentials" {
 }
 
 test "authenticate with invalid username" {
-    try testing.expect(!auth.authenticate("wrong_user", auth.ADMIN_PASSWORD));
+    setupTest();
+    const result = try auth.authenticate("wrong_user", config.Config.ADMIN_PASSWORD);
+    try testing.expect(result == .err);
 }
 
 test "authenticate with invalid password" {
