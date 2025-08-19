@@ -110,6 +110,27 @@ html, body {
   transform: translateY(0);
 }
 
+.cyber-button-secondary {
+  background: transparent;
+  border: 1px solid var(--color-cyber-gray);
+  color: var(--color-cyber-gray);
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-button-secondary:hover {
+  border-color: var(--color-neon-cyan);
+  color: var(--color-neon-cyan);
+  background: var(--color-glow-cyan-50);
+  box-shadow: 0 0 8px var(--color-glow-cyan-100);
+}
+
 .cyber-input {
   background: var(--color-cyber-darker);
   border: 1px solid var(--color-cyber-gray);
