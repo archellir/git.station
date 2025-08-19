@@ -53,13 +53,9 @@ test "session management - create and remove" {
 test "session management - create different tokens" {
     setupTest();
 
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
     // Create two sessions
-    const token1 = try auth.createSession(allocator);
-    const token2 = try auth.createSession(allocator);
+    const token1 = try auth.createSession(config.Config.ADMIN_USERNAME);
+    const token2 = try auth.createSession(config.Config.ADMIN_USERNAME);
 
     // Both should be valid
     try testing.expect(auth.validateSession(token1));
