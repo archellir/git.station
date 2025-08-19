@@ -40,12 +40,8 @@ test "session management - create and validate" {
 test "session management - create and remove" {
     setupTest();
 
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
     // Create a session
-    const token = try auth.createSession(allocator);
+    const token = try auth.createSession(config.Config.ADMIN_USERNAME);
 
     // Remove the session
     auth.removeSession(token);
