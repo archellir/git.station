@@ -30,12 +30,8 @@ test "authenticate with invalid password" {
 test "session management - create and validate" {
     setupTest();
 
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
     // Create a session
-    const token = try auth.createSession(allocator);
+    const token = try auth.createSession(config.Config.ADMIN_USERNAME);
 
     // Validate the token exists
     try testing.expect(auth.validateSession(token));
