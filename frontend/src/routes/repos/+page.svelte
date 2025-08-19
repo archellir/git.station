@@ -135,14 +135,14 @@
 				</p>
 			</div>
 			
-			<div class="flex items-center space-x-4">
-				<button class="cyber-button" onclick={() => showCreateModal = true}>
+			<div class="flex items-center space-x-3">
+				<button class="cyber-button text-base px-6 py-3" onclick={() => showCreateModal = true}>
 					<span class="mr-2">+</span>
-					New Repository
+					Initialize Repository
 				</button>
-				<button class="cyber-button">
+				<button class="cyber-button-secondary">
 					<span class="mr-2">📥</span>
-					Import
+					Import Existing
 				</button>
 			</div>
 		</div>
@@ -283,4 +283,4 @@
 </div>
 
 <!-- Create Repository Modal -->
-<CreateRepositoryModal bind:isOpen={showCreateModal} {onRepositoryCreated} />
+<CreateRepositoryModal bind:isOpen={showCreateModal} onRepositoryCreated={handleRepositoryCreated} />
