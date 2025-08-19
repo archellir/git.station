@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { API_ENDPOINTS } from '$lib/constants';
+	import CyberButton from './CyberButton.svelte';
 	
 	let { isOpen = $bindable(), onRepositoryCreated }: {
 		isOpen: boolean;
@@ -162,26 +163,21 @@
 			
 			<!-- Actions -->
 			<div class="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-gray-700">
-				<button
+				<CyberButton
+					variant="secondary"
 					onclick={closeModal}
-					class="px-4 py-2 text-gray-400 hover:text-gray-300 transition-colors"
 					disabled={isLoading}
 				>
 					Cancel
-				</button>
-				<button
+				</CyberButton>
+				<CyberButton
 					onclick={createRepository}
-					class="cyber-button"
 					disabled={isLoading || !repoName.trim()}
+					loading={isLoading}
+					icon={isLoading ? '' : '+'}
 				>
-					{#if isLoading}
-						<span class="mr-2">⏳</span>
-						Initializing...
-					{:else}
-						<span class="mr-2">+</span>
-						Initialize Repository
-					{/if}
-				</button>
+					{isLoading ? 'Initializing...' : 'Initialize Repository'}
+				</CyberButton>
 			</div>
 			
 			<!-- Keyboard Shortcuts -->
