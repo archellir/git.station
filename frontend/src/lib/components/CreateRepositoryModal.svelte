@@ -95,7 +95,7 @@
 			<!-- Header -->
 			<div class="flex items-center justify-between mb-6">
 				<h2 id="modal-title" class="text-xl font-bold cyber-text-glow">
-					<span class="text-neon-green">></span> Create Repository
+					<span class="text-neon-green">></span> Initialize Repository
 				</h2>
 				<button onclick={closeModal} class="text-gray-400 hover:text-neon-green transition-colors">
 					<span class="text-xl">✕</span>
@@ -176,10 +176,10 @@
 				>
 					{#if isLoading}
 						<span class="mr-2">⏳</span>
-						Creating...
+						Initializing...
 					{:else}
 						<span class="mr-2">+</span>
-						Create Repository
+						Initialize Repository
 					{/if}
 				</button>
 			</div>
