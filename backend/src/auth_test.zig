@@ -22,7 +22,9 @@ test "authenticate with invalid username" {
 }
 
 test "authenticate with invalid password" {
-    try testing.expect(!auth.authenticate(auth.ADMIN_USERNAME, "wrong_password"));
+    setupTest();
+    const result = try auth.authenticate(config.Config.ADMIN_USERNAME, "wrong_password");
+    try testing.expect(result == .err);
 }
 
 test "session management - create and validate" {
