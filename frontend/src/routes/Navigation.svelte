@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { NAV_ITEMS, COLORS } from '$lib/constants';
+	import { auth } from '$lib/stores/auth';
 	
 	let currentPath = $derived($page.url.pathname);
+	
+	function handleLogout() {
+		auth.logout();
+	}
 </script>
 
 <nav class="cyber-bg-panel border-b border-gray-700">
@@ -33,9 +38,21 @@
 			</div>
 			
 			<!-- User Info -->
-			<div class="flex items-center space-x-2 text-sm">
-				<span class="text-terminal-amber">●</span>
-				<span class="text-gray-400">admin</span>
+			<div class="flex items-center space-x-4 text-sm">
+				<div class="flex items-center space-x-2">
+					<span class="text-terminal-amber">●</span>
+					<span class="text-gray-400">{$auth.user?.username || 'guest'}</span>
+				</div>
+				
+				{#if $auth.isAuthenticated}
+					<button 
+						onclick={handleLogout}
+						class="cyber-button-secondary px-3 py-1 text-xs"
+						title="Logout"
+					>
+						🔒 Logout
+					</button>
+				{/if}
 			</div>
 		</div>
 		
