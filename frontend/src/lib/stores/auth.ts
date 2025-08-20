@@ -62,9 +62,17 @@ function createAuthStore() {
 			update(state => ({ ...state, isLoading: true }));
 
 			try {
-				// For now, use mock authentication
-				// TODO: Replace with actual API call to /api/login
-				if (username === 'admin' && password === 'password123') {
+				// Make actual API call to backend
+				const response = await fetch('/api/login', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include', // Important: send/receive cookies
+					body: JSON.stringify({ username, password })
+				});
+
+				if (response.ok) {
 					const user = { username };
 					
 					if (browser) {
@@ -85,7 +93,9 @@ function createAuthStore() {
 						user: null,
 						isLoading: false
 					});
-					return { success: false, error: 'Invalid credentials. Access denied.' };
+					
+					const errorData = await response.json().catch(() => ({ error: 'Authentication failed' }));
+					return { success: false, error: errorData.error || 'Invalid credentials. Access denied.' };
 				}
 			} catch (error) {
 				set({
@@ -98,7 +108,17 @@ function createAuthStore() {
 		},
 
 		// Logout function
-		logout() {
+		async logout() {
+			try {
+				// Call backend logout endpoint
+				await fetch('/api/logout', {
+					method: 'POST',
+					credentials: 'include'
+				});
+			} catch (error) {
+				console.warn('Logout API call failed:', error);
+			}
+			
 			if (browser) {
 				localStorage.removeItem('auth');
 				localStorage.removeItem('user');
