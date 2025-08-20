@@ -92,6 +92,12 @@ fn handleConnection(conn: Connection, allocator: std.mem.Allocator) void {
             return sendError(conn, 401, "Authentication failed");
         };
         return;
+    } else if (std.mem.eql(u8, path, "/api/logout") and std.mem.eql(u8, method, "POST")) {
+        handleLogout(conn, request, allocator) catch |err| {
+            std.debug.print("Logout failed: {}\n", .{err});
+            return sendError(conn, 500, "Logout failed");
+        };
+        return;
     } else if (std.mem.eql(u8, method, "GET") and !std.mem.startsWith(u8, path, "/api/")) {
         serveStaticFile(conn, path, allocator) catch return sendError(conn, 500, "Failed to serve static file");
         return;
@@ -360,6 +366,29 @@ pub fn handleLogin(conn: Connection, request: []const u8, allocator: std.mem.All
         &header,
         "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {d}\r\nSet-Cookie: {s}\r\nConnection: close\r\n\r\n",
         .{ json.len, cookie },
+    );
+    _ = try conn.stream.write(header_str);
+    _ = try conn.stream.write(json);
+}
+
+pub fn handleLogout(conn: Connection, request: []const u8, allocator: std.mem.Allocator) !void {
+    // Extract session token from cookies
+    const auth_token = parseCookie(request, "session") orelse "";
+    
+    // If we have a session token, invalidate it
+    if (auth_token.len > 0) {
+        auth.removeSession(auth_token);
+    }
+    
+    // Clear the session cookie
+    const json = try std.fmt.allocPrint(allocator, "{{\"status\":\"success\",\"message\":\"Logged out successfully\"}}", .{});
+    defer allocator.free(json);
+
+    var header: [512]u8 = undefined;
+    const header_str = try std.fmt.bufPrint(
+        &header,
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {d}\r\nSet-Cookie: session=; Path=/; HttpOnly; Expires=Thu, 01 Jan 1970 00:00:00 GMT\r\nConnection: close\r\n\r\n",
+        .{json.len},
     );
     _ = try conn.stream.write(header_str);
     _ = try conn.stream.write(json);
