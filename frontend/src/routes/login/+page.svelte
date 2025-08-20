@@ -1,10 +1,18 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { auth } from '$lib/stores/auth';
+	import { onMount } from 'svelte';
 	
 	let username = $state('');
 	let password = $state('');
-	let isLoading = $state(false);
 	let errorMessage = $state('');
+	
+	// Redirect if already authenticated
+	onMount(() => {
+		if ($auth.isAuthenticated) {
+			goto('/');
+		}
+	});
 	
 	async function handleLogin(event: SubmitEvent) {
 		event.preventDefault();
@@ -14,25 +22,15 @@
 			return;
 		}
 		
-		isLoading = true;
 		errorMessage = '';
 		
-		try {
-			// Mock authentication - will be replaced with API call
-			if (username === 'admin' && password === 'password123') {
-				// Store auth state (mock)
-				localStorage.setItem('auth', 'true');
-				localStorage.setItem('user', JSON.stringify({ username: 'admin' }));
-				
-				// Redirect to dashboard
-				await goto('/');
-			} else {
-				errorMessage = 'Invalid credentials. Access denied.';
-			}
-		} catch (error) {
-			errorMessage = 'Connection error. Unable to authenticate.';
-		} finally {
-			isLoading = false;
+		const result = await auth.login(username, password);
+		
+		if (result.success) {
+			// Redirect to dashboard
+			await goto('/');
+		} else {
+			errorMessage = result.error || 'Authentication failed';
 		}
 	}
 	
@@ -123,7 +121,7 @@
 							bind:value={username}
 							oninput={clearError}
 							placeholder="Enter username"
-							disabled={isLoading}
+							disabled={$auth.isLoading}
 							class="w-full cyber-input font-mono placeholder:text-gray-600"
 							autocomplete="username"
 							required
@@ -141,7 +139,7 @@
 							bind:value={password}
 							oninput={clearError}
 							placeholder="Enter password"
-							disabled={isLoading}
+							disabled={$auth.isLoading}
 							class="w-full cyber-input font-mono placeholder:text-gray-600"
 							autocomplete="current-password"
 							required
@@ -151,10 +149,10 @@
 					<!-- Submit Button -->
 					<button
 						type="submit"
-						disabled={isLoading || !username || !password}
+						disabled={$auth.isLoading || !username || !password}
 						class="w-full cyber-button py-3 font-mono text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						{#if isLoading}
+						{#if $auth.isLoading}
 							<span class="flex items-center justify-center space-x-2">
 								<span class="animate-spin">⏳</span>
 								<span>AUTHENTICATING...</span>
